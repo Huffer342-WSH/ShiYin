@@ -1,0 +1,106 @@
+# UI 设计与测试
+
+界面以本地音频播放器为主，闹钟作为附加功能。沿用 Compose + Material 3，参考 [VLC 音频播放器](https://docs.videolan.me/vlc-user/android/3.5/en/audio/audio_player.html) 的库、迷你播放器、队列与更多菜单组织，以及 [APlayer](https://github.com/rRemix/APlayer) 的本地音乐布局；不移植其代码或资源。
+
+## 页面约定
+
+- 主入口为歌曲、播放列表、目录、闹钟，支持左右滑动切换主栏目。使用紧凑顶栏；不放产品名、宣传卡片和常驻帮助段落。
+- 闹钟是独立导航栏目，设置和帮助放在更多菜单。说明只在用户主动打开帮助时展示；权限或文件失败属于必要状态提示。
+- 歌曲列表直接呈现曲目、艺术家和时长。搜索按需展开；行尾菜单提供下一首、追加队列、加入播放列表和创建闹钟。
+- 迷你播放器保留曲目与播放控制；点击打开完整播放页。完整页集中放进度、上一首/下一首、随机和循环，更多菜单包含睡眠定时、保存队列及停止。
+- 持久播放列表与临时队列分开。列表可新建、重命名、多选管理歌曲、上移/下移、删除；删除列表不删除文件。
+- 目录页管理监控根目录。详情用“浏览 / 全部音频”切换层级视图和递归集合；长按进入多选，支持当前视图全选、长按滑选与边缘滚动，批量添加到指定或新建播放列表。子目录返回逐级退出，多选时先取消选择。移除目录只停止监控；授权失败显示在对应目录上。
+- 闹钟编辑使用时间/日期选择器、重复规则、单次时长上限、淡入与试听。新建默认淡入 15 秒，旧记录默认不淡入。保存失败保留编辑内容，放弃修改前确认。
+- 主题支持四套预设、自定义主色和系统/浅色/深色模式，Android 12 以上可选壁纸动态配色。颜色输入校验格式，主色文字对比度经过计算。
+
+手机使用底部导航，宽窗口使用侧边导航。点击区域至少 48dp，重复规则整行至少 56dp。列表、表单和选择面板可滚动；键盘与系统栏由 Scaffold/insets 处理。低高度窗口的时间输入使用横向紧凑布局，字段和操作按钮位于键盘上方。
+
+## 项目内技能与实现
+
+[mobile-android-design](../.agents/skills/mobile-android-design/SKILL.md) 来自 [wshobson/agents](https://github.com/wshobson/agents/tree/main/plugins/ui-design/skills/mobile-android-design)，保留 MIT 许可证、references 和 [来源记录](../.agents/skills/mobile-android-design/SOURCE.md)。依赖版本以项目版本目录和官方文档为准，不直接照抄技能示例版本。
+
+- [MainActivity.kt](../app/src/main/java/com/Huffer342/shiyin/MainActivity.kt)：导航、目录选择器、系统权限与对话框。
+- [PlayerScreens.kt](../app/src/main/java/com/Huffer342/shiyin/ui/PlayerScreens.kt)：歌曲、迷你/完整播放页及可编辑队列。
+- [LibraryScreens.kt](../app/src/main/java/com/Huffer342/shiyin/ui/LibraryScreens.kt)：播放列表、目录、歌曲多选和睡眠定时。
+- [ScheduleScreens.kt](../app/src/main/java/com/Huffer342/shiyin/ui/ScheduleScreens.kt)：闹钟编辑、淡入与单次上限。
+- [SettingsScreen.kt](../app/src/main/java/com/Huffer342/shiyin/ui/SettingsScreen.kt)：精简设置、主题配置和按需帮助。
+- [ThemeSettings.kt](../app/src/main/java/com/Huffer342/shiyin/ThemeSettings.kt)、[主题](../app/src/main/java/com/Huffer342/shiyin/ui/theme)：配色校验、对比度和系统栏外观。
+
+## 模拟器测试音频
+
+[test-fixtures/audio](../test-fixtures/audio) 保留四个低音量合成音频文件，无外部歌曲或采样，不打包进正式 APK。
+
+| 文件 | 内容 | 时长 |
+| --- | --- | --- |
+| dawn-chords.wav | 淡入淡出的 C 大调合成和弦 | 45 秒 |
+| soft-rain.mp3 | 固定种子的粉红噪声 | 60 秒 |
+| evening-bells.flac | 周期衰减的调制音 | 30 秒 |
+| dawn-aac.m4a | dawn-chords 转码，AAC 128 kb/s | 45 秒 |
+
+生成命令在项目根目录执行，`-n` 避免覆盖已有文件：
+
+```sh
+ffmpeg -nostdin -n -f lavfi -i 'aevalsrc=0.035*(sin(2*PI*261.63*t)+sin(2*PI*329.63*t)+sin(2*PI*392*t))*(0.65+0.35*sin(2*PI*0.12*t)):s=44100:d=45' -af 'afade=t=in:d=2,afade=t=out:st=42:d=3' -metadata title='晨光 · 和弦练习' -metadata artist='ShiYin Test Studio' test-fixtures/audio/dawn-chords.wav
+ffmpeg -nostdin -n -f lavfi -i 'anoisesrc=color=pink:amplitude=0.06:duration=60:sample_rate=44100:seed=342' -af 'afade=t=in:d=2,afade=t=out:st=57:d=3' -c:a libmp3lame -q:a 4 -metadata title='微雨 · 粉红噪声' -metadata artist='ShiYin Test Studio' test-fixtures/audio/soft-rain.mp3
+ffmpeg -nostdin -n -f lavfi -i 'aevalsrc=0.07*sin(2*PI*(523.25+3*sin(2*PI*0.2*t))*t)*exp(-2*mod(t\,2)):s=44100:d=30' -af 'afade=t=in:d=1,afade=t=out:st=28:d=2' -c:a flac -metadata title='晚风 · 合成钟声' -metadata artist='ShiYin Test Studio' test-fixtures/audio/evening-bells.flac
+```
+
+M4A 样例由现有 WAV 转码：
+
+```sh
+ffmpeg -nostdin -n -i test-fixtures/audio/dawn-chords.wav -c:a aac -b:a 128k -metadata title='晨光 · AAC 示例' -metadata artist='ShiYin Test Studio' -movflags +faststart test-fixtures/audio/dawn-aac.m4a
+adb -s emulator-5554 shell mkdir -p /sdcard/Music/ShiYin/AAC
+adb -s emulator-5554 push test-fixtures/audio/dawn-aac.m4a /sdcard/Music/ShiYin/AAC/dawn-aac.m4a
+```
+
+使用 SAF 监控 Music/ShiYin 后会自动发现 AAC 子目录与文件，无需 MediaStore 广播。
+
+在确认目标模拟器后导入，下面以 `emulator-5554` 为例：
+
+```sh
+adb -s emulator-5554 shell mkdir -p /sdcard/Music/ShiYin
+adb -s emulator-5554 push test-fixtures/audio/dawn-chords.wav /sdcard/Music/ShiYin/
+adb -s emulator-5554 push test-fixtures/audio/soft-rain.mp3 /sdcard/Music/ShiYin/
+adb -s emulator-5554 push test-fixtures/audio/evening-bells.flac /sdcard/Music/ShiYin/
+adb -s emulator-5554 shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Music/ShiYin/dawn-chords.wav
+adb -s emulator-5554 shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Music/ShiYin/soft-rain.mp3
+adb -s emulator-5554 shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Music/ShiYin/evening-bells.flac
+```
+
+广播成功仅代表请求已发出；须在时音中扫描并检查曲目、时长与播放进度。素材为低音量测试信号，仍应先确认系统音量再试听。本次模拟器对 WAV 的 RIFF 元数据未显示中文标题，列表使用 dawn-chords 和“未知艺术家”；MP3、FLAC 显示内嵌标题和艺术家。
+
+
+## 本次目录与导航验证
+
+- 四个主栏目支持点击和左右滑动；`NavigationUiTest` 检查滑到闹钟、滑回目录和返回歌曲后保留搜索。
+- `FolderBrowserUiTest` 验证逐层浏览、本层全选、递归全选、长按滑选、取消单项和批量添加的实际歌曲集合。
+- 长按滑选期间禁用普通触摸滚动，避免滚动手势中断选择；边缘滚动由滑选处理。
+- API 37 模拟器相关 8 项 UI 测试分别通过。原有 29 项单元测试、Debug 构建与 Lint 检查通过。
+- 实际 SAF 目录中新增 `AAC/dawn-aac.m4a` 后歌曲集合自动更新为 4 首；进入 AAC 子目录仅显示该文件。播放页识别标题与 45 秒时长，观察到进度推进至 17 秒后暂停。
+- 本轮未重新验证 Android 15 真机声音、后台闹钟与耳机路由；没有清空应用数据。
+
+## 之前的验证
+
+- [PlayerFeaturesTest](../app/src/test/java/com/Huffer342/shiyin/PlayerFeaturesTest.kt)：播放列表增删排序/存储、URI 限制、目录记录、睡眠截止、淡入曲线、旧任务兼容、颜色格式和对比度。
+- [LibraryUiTest](../app/src/androidTest/java/com/Huffer342/shiyin/LibraryUiTest.kt)：歌曲多选、无效自定义颜色拦截与有效颜色应用。
+- [NavigationUiTest](../app/src/androidTest/java/com/Huffer342/shiyin/NavigationUiTest.kt)：新的主导航、搜索状态和返回。
+- [ScheduleEditorUiTest](../app/src/androidTest/java/com/Huffer342/shiyin/ScheduleEditorUiTest.kt)：输入校验、退出确认和状态恢复。
+- [PlaybackIntegrationTest](../app/src/androidTest/java/com/Huffer342/shiyin/PlaybackIntegrationTest.kt)：追加队列不暂停、一分钟睡眠定时及取消、5 秒淡入、30 秒试听停止和后台闹钟触发。
+
+2026-11-16 本轮记录：
+
+- Debug/Release 构建、测试 APK 和 Lint 通过；29 项单元测试通过，Lint 0 错误、29 项警告。
+- API 37 模拟器全量设备测试 `OK (8 tests)`，约 201 秒；最终交互复跑记录见开发指南。
+- 指定 `Music/ShiYin` 后，在子目录添加临时文件，前台自动从 3 首更新到 4 首；删除后自动回到 3 首，没有点击刷新。
+- 撤销 READ_MEDIA_AUDIO 后重新打开，持久目录授权仍能扫描和启动播放；测试后恢复原有媒体权限。
+- 当前队列保存为 `Demo` 播放列表，包含三首测试音频；检查了列表内容、主题即时切换，恢复原有森林配色。
+- 临时文件和闹钟已清理。真实耳机声音、Android 15 锁屏/Doze、厂商后台限制和目录授权被系统撤销后的现场表现仍待真机验收。
+
+模拟器 GPU 渲染曾发生 signal 11，当前使用软件渲染，未清空 AVD：
+
+```sh
+/home/wushenhui/Android/Sdk/emulator/emulator -avd Medium_Phone_API_37.0 -gpu swiftshader -no-snapshot-load -no-snapshot-save
+```
+
+当前截图：[歌曲页](screenshots/library-v2.png) · [播放列表](screenshots/playlist-v2.png) · [主题](screenshots/theme-v2.png)。
+旧的 library.png、player.png、editor-dark.png 为上一轮 UI 快照，不代表当前布局。执行命令与更多验收项目见 [开发指南](开发指南.md)。
