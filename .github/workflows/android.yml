@@ -68,6 +68,13 @@ jobs:
         run: sha256sum -c SHA256SUMS
       - name: Unit tests and lint
         run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:testDebugUnitTest :app:lintDebug
+      - name: Reserve disk space for emulator
+        run: |
+          # Disposable hosted runner only; this Kotlin app does not use .NET or the NDK.
+          sudo rm -rf /usr/share/dotnet "$ANDROID_HOME/ndk"
+          df -h /
+          available_kb=$(df -Pk / | awk 'NR==2 {print $4}')
+          test "$available_kb" -gt 12582912
       - name: Enable KVM
         run: sudo chmod a+rw /dev/kvm
       - name: Test the built APKs on Android 15
