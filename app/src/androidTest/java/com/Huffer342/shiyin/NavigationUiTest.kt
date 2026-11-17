@@ -13,6 +13,11 @@ class NavigationUiTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
     @Test fun destinationsAndBackKeepLibrarySearch() {
+        if (compose.onAllNodesWithText("稍后设置").fetchSemanticsNodes().isNotEmpty())
+            compose.onNodeWithText("稍后设置").performClick()
+        compose.onNodeWithTag("background_swipe").assertExists()
+        if (compose.onAllNodesWithText("知道了").fetchSemanticsNodes().isNotEmpty())
+            compose.onNodeWithText("知道了").performClick()
         compose.onNodeWithText("时音").assertDoesNotExist()
         compose.onNodeWithText("随身音乐").assertDoesNotExist()
         compose.onNodeWithContentDescription("搜索").performClick()

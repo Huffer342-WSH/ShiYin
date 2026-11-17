@@ -46,6 +46,19 @@ fun ShiYinTheme(
             onSecondaryContainer = Color(containerText),
             tertiary = Color(primary), onTertiary = Color(foreground),
             tertiaryContainer = Color(container), onTertiaryContainer = Color(containerText),
+            background = Color(blendColor(seed, if (dark) black else white, if (dark) .94f else .97f)),
+            surface = Color(blendColor(seed, if (dark) black else white, if (dark) .94f else .97f)),
+            onBackground = Color(if (dark) 0xFFF0F0F0 else 0xFF191919),
+            onSurface = Color(if (dark) 0xFFF0F0F0 else 0xFF191919),
+            onSurfaceVariant = Color(if (dark) 0xFFD0D0D0 else 0xFF484848),
+            surfaceVariant = Color(blendColor(seed, if (dark) black else white, .82f)),
+            surfaceContainerLowest = Color(blendColor(seed, if (dark) black else white, .98f)),
+            surfaceContainerLow = Color(blendColor(seed, if (dark) black else white, .94f)),
+            surfaceContainer = Color(blendColor(seed, if (dark) black else white, .90f)),
+            surfaceContainerHigh = Color(blendColor(seed, if (dark) black else white, .86f)),
+            surfaceContainerHighest = Color(blendColor(seed, if (dark) black else white, .82f)),
+            outline = Color(blendColor(seed, if (dark) white else black, .55f)),
+            outlineVariant = Color(blendColor(seed, if (dark) black else white, .72f)),
             surfaceTint = Color(primary)
         )
     }

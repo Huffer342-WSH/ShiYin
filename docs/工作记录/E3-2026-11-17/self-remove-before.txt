@@ -1,0 +1,21 @@
+* ServiceRecord{2336769 u0 com.Huffer342.shiyin.alarmprobe/.WaitingService c:com.Huffer342.shiyin.alarmprobe}
+    app=ProcessRecord{c8d0214 23399:com.Huffer342.shiyin.alarmprobe/u0a491}
+    isForeground=true foregroundId=2 types=0x00000400 foregroundNoti=Notification(channel=waiting shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0)
+[V] will control stream=4 (STREAM_ALARM)
+[V] will get volume
+[V] Connecting to AudioService
+[V] volume is 133 in range [0..150]
+* ServiceRecord{2336769 u0 com.Huffer342.shiyin.alarmprobe/.WaitingService c:com.Huffer342.shiyin.alarmprobe}
+    app=ProcessRecord{c8d0214 23399:com.Huffer342.shiyin.alarmprobe/u0a491}
+    isForeground=true foregroundId=2 types=0x00000400 foregroundNoti=Notification(channel=waiting shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0)
+    User 0: [data inode omitted] installed=true hidden=false vHidden=1 suspended=false distractionFlags=0 stopped=false vStopped=false notLaunched=false enabled=0 instant=false virtual=false quarantined=false
+    User 0:
+    RTC_WAKEUP #14: Alarm{f14e47f type 0 origWhen 1794901252707 flags 3 windowLength 0 whenElapsed 3195826395 maxWhenElapsed 3195826395 repeatInterval 0 tag=*walarm*:PLAY originWhenElapsed 3195826395 originWindowLength 0 setAtTime=2026-11-17 07:37:52 policyWhenElapsed:[3195826395, 3195646399, 0, 0] procName=com.Huffer342.shiyin.alarmprobe com.Huffer342.shiyin.alarmprobe}
+  Next wake from idle: Alarm{f14e47f type 0 origWhen 1794901252707 flags 3 windowLength 0 whenElapsed 3195826395 maxWhenElapsed 3195826395 repeatInterval 0 tag=*walarm*:PLAY originWhenElapsed 3195826395 originWindowLength 0 setAtTime=2026-11-17 07:37:52 policyWhenElapsed:[3195826395, 3195646399, 0, 0] procName=com.Huffer342.shiyin.alarmprobe com.Huffer342.shiyin.alarmprobe}
+  mCurrentFocus=null
+  mCurrentFocus=Window{f12aa95 u0 com.bbk.launcher2/com.bbk.launcher2.Launcher type=1 }
+Tue Nov 17 15:40:11 +08 2026
+  mWakefulness=Awake
+  * ServiceRecord{2336769 u0 com.Huffer342.shiyin.alarmprobe/.WaitingService c:com.Huffer342.shiyin.alarmprobe}
+    app=ProcessRecord{c8d0214 23399:com.Huffer342.shiyin.alarmprobe/u0a491}
+    isForeground=true foregroundId=2 types=0x00000400 foregroundNoti=Notification(channel=waiting shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0)

@@ -178,13 +178,13 @@ fun NowPlayingScreen(
             val artwork = if (wide) 220.dp else minOf(maxWidth - 64.dp, maxHeight * .42f, 320.dp)
             if (wide) Row(Modifier.fillMaxSize().padding(horizontal = 32.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(40.dp)) {
-                RecordArtwork(state.title, Modifier.size(artwork))
+                key(state.uri) { PlaybackVisuals(state, Modifier.size(artwork)) }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     PlaybackDetails(state, onToggle, onPrevious, onNext, onSeek, onRepeat, onShuffle, onSleep)
                 }
             } else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {
-                RecordArtwork(state.title, Modifier.size(artwork))
+                key(state.uri) { PlaybackVisuals(state, Modifier.size(artwork)) }
                 Spacer(Modifier.height(28.dp))
                 PlaybackDetails(state, onToggle, onPrevious, onNext, onSeek, onRepeat, onShuffle, onSleep)
             }
@@ -192,6 +192,7 @@ fun NowPlayingScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlaybackDetails(state: PlaybackUi, onToggle: () -> Unit, onPrevious: () -> Unit, onNext: () -> Unit,
     onSeek: (Long) -> Unit, onRepeat: () -> Unit, onShuffle: () -> Unit, onSleep: () -> Unit) {
@@ -208,9 +209,16 @@ private fun PlaybackDetails(state: PlaybackUi, onToggle: () -> Unit, onPrevious:
         Slider(value = dragging ?: state.position.toFloat().coerceIn(0f, state.duration.coerceAtLeast(1).toFloat()),
             onValueChange = { dragging = it }, onValueChangeFinished = { dragging?.let { onSeek(it.toLong()) }; dragging = null },
             valueRange = 0f..state.duration.coerceAtLeast(1).toFloat(), enabled = state.duration > 0,
-            modifier = Modifier.semantics { contentDescription = "播放进度" })
+            thumb = { Surface(Modifier.size(20.dp), shape = androidx.compose.foundation.shape.CircleShape,
+                color = MaterialTheme.colorScheme.primary, shadowElevation = 3.dp,
+                border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.surface)) {} },
+            track = { sliderState -> SliderDefaults.Track(sliderState, Modifier.height(8.dp)) },
+            colors = SliderDefaults.colors(activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.primaryContainer),
+            modifier = Modifier.fillMaxWidth().height(56.dp).testTag("playback_seek").semantics { contentDescription = "播放进度" })
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(durationText(state.position), style = MaterialTheme.typography.labelMedium)
+            Text(durationText(dragging?.toLong() ?: state.position), style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary, modifier = Modifier.testTag("seek_time"))
             Text(durationText(state.duration), style = MaterialTheme.typography.labelMedium)
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceEvenly,

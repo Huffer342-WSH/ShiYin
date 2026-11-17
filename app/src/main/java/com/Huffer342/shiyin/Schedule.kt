@@ -23,15 +23,27 @@ data class Schedule(
     val enabled: Boolean = true,
     val nextAt: Long = 0,
     val status: String = "",
-    val fadeSeconds: Int = 0
+    val fadeSeconds: Int = 0,
+    val countdownAt: Long = 0,
+    val countdownSeconds: Long = 0
 ) {
     init {
         require(id.isNotBlank() && title.isNotBlank() && isLocalAudioReference(uri))
+        require(countdownSeconds in 0..86400 && (countdownSeconds == 0L || countdownAt > 0))
+        require(countdownAt >= 0 && (countdownAt == 0L || rule == RepeatRule.ONCE))
         require(hour in 0..23 && minute in 0..59)
         require(stopMinutes in 1..1440)
         require(fadeSeconds in 0..300 && fadeSeconds < stopMinutes * 60) { "淡入须小于单次播放上限" }
         require(rule != RepeatRule.WEEKLY || weekdays.isNotEmpty())
     }
+}
+
+fun restartCountdown(schedule: Schedule, now: Long): Schedule {
+    require(schedule.countdownSeconds in 1..86400)
+    val end = Math.addExact(now, schedule.countdownSeconds * 1000)
+    val date = java.time.Instant.ofEpochMilli(end).atZone(java.time.ZoneId.systemDefault())
+    return schedule.copy(countdownAt = end, hour = date.hour, minute = date.minute,
+        date = date.toLocalDate(), enabled = true, nextAt = 0, status = "")
 }
 
 class MissingCalendarException(val year: Int) : IllegalStateException("缺少 ${year} 年工作日日历，请联网更新")
@@ -50,6 +62,8 @@ fun nextOccurrence(
     calendars: Map<Int, WorkCalendar>
 ): ZonedDateTime? {
     if (!schedule.enabled) return null
+    if (schedule.countdownAt > 0) return java.time.Instant.ofEpochMilli(schedule.countdownAt)
+        .atZone(now.zone).takeIf { it.isAfter(now) }
     val time = LocalTime.of(schedule.hour, schedule.minute)
     if (schedule.rule == RepeatRule.ONCE) {
         return schedule.date.atTime(time).atZone(now.zone).takeIf { it.isAfter(now) }

@@ -1,0 +1,5 @@
+User 0: [data inode omitted] installed=true hidden=false vHidden=1 suspended=false distractionFlags=0 stopped=true vStopped=true notLaunched=false enabled=0 instant=false virtual=false quarantined=false
+    User 0:
+ACTIVITY MANAGER SERVICES (dumpsys activity services)
+  (nothing)
+17b42c4fa2e47e65893bb41e26e4f7bf0f22d90360dfb421b9f46f9c5f8847ae  experiments/alarm-probe/build/outputs/apk/sdk34/debug/ShiYinAlarmProbe-sdk34-debug.apk

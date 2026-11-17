@@ -91,12 +91,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }, ContextCompat.getMainExecutor(context))
     }
 
-    private fun operation(block: suspend () -> Unit) {
+    private fun operation(showBusy: Boolean = true, block: suspend () -> Unit) {
         viewModelScope.launch {
             mutex.withLock {
-                busy = true
+                if (showBusy) busy = true
                 try { block() } catch (e: Exception) { message = e.message ?: "操作失败" }
-                finally { busy = false }
+                finally { if (showBusy) busy = false }
             }
         }
     }
@@ -208,7 +208,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         loadState(); message = "播放列表已删除"
     }
 
-    fun save(schedule: Schedule, onSaved: () -> Unit = {}) = operation {
+    fun save(schedule: Schedule, onSaved: () -> Unit = {}) = operation(showBusy = false) {
         require(MusicLibrary.canRead(context, schedule.uri)) { "音频授权失效，请重新选择歌曲或目录" }
         withContext(Dispatchers.IO) { ScheduleScheduler.save(context, schedule) }
         loadState()

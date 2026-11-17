@@ -1,0 +1,26 @@
+--------- beginning of main
+11-17 12:47:13.926 22710 22710 I ShiYinProbe: {"wall":1794890833922,"elapsed":72707043,"event":"activity_create","target":37,"run":"","detail":""}
+11-17 12:47:13.933 22710 22710 I ShiYinProbe: {"wall":1794890833933,"elapsed":72707053,"event":"activity_resume","target":37,"run":"","detail":""}
+11-17 12:47:31.897 22710 22710 I ShiYinProbe: {"wall":1794890851897,"elapsed":72725018,"event":"scheduled","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"due=1794890971896 durationMs=60000 asset=dawn-aac.m4a"}
+11-17 12:47:31.984 22710 22710 I ShiYinProbe: {"wall":1794890851984,"elapsed":72725105,"event":"activity_pause","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":""}
+11-17 12:47:32.968 22710 22710 I ShiYinProbe: {"wall":1794890852968,"elapsed":72726089,"event":"activity_stop","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":""}
+11-17 12:49:31.899 22710 22710 I ShiYinProbe: {"wall":1794890971899,"elapsed":72845020,"event":"service_delivery","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"action=PLAY"}
+11-17 12:49:31.904 22710 22710 I ShiYinProbe: {"wall":1794890971904,"elapsed":72845025,"event":"foreground","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":""}
+11-17 12:49:31.908 22710 22710 I ShiYinProbe: {"wall":1794890971908,"elapsed":72845028,"event":"environment","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"interactive=true locked=false alarmVolume=6\/7 musicVolume=7"}
+11-17 12:49:31.909 22710 22710 I ShiYinProbe: {"wall":1794890971908,"elapsed":72845029,"event":"focus","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"attempt=1 result=1"}
+11-17 12:49:31.921 22710 22710 I ShiYinProbe: {"wall":1794890971921,"elapsed":72845042,"event":"play_started","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"duration=45000 session=385"}
+11-17 12:49:31.921 22710 22710 I ShiYinProbe: {"wall":1794890971921,"elapsed":72845042,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=0 routeType=null elapsed=0"}
+11-17 12:49:36.923 22710 22710 I ShiYinProbe: {"wall":1794890976923,"elapsed":72850044,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=4964 routeType=2 elapsed=5002"}
+11-17 12:49:41.928 22710 22710 I ShiYinProbe: {"wall":1794890981928,"elapsed":72855049,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=9969 routeType=2 elapsed=10007"}
+11-17 12:49:46.934 22710 22710 I ShiYinProbe: {"wall":1794890986934,"elapsed":72860054,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=14975 routeType=2 elapsed=15012"}
+11-17 12:49:51.939 22710 22710 I ShiYinProbe: {"wall":1794890991939,"elapsed":72865060,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=19980 routeType=2 elapsed=20018"}
+11-17 12:49:56.945 22710 22710 I ShiYinProbe: {"wall":1794890996945,"elapsed":72870065,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=24986 routeType=2 elapsed=25023"}
+11-17 12:50:01.947 22710 22710 I ShiYinProbe: {"wall":1794891001947,"elapsed":72875068,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=29988 routeType=2 elapsed=30026"}
+11-17 12:50:06.952 22710 22710 I ShiYinProbe: {"wall":1794891006952,"elapsed":72880073,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=34993 routeType=2 elapsed=35031"}
+11-17 12:50:11.955 22710 22710 I ShiYinProbe: {"wall":1794891011955,"elapsed":72885076,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=39996 routeType=2 elapsed=40034"}
+11-17 12:50:17.000 22710 22710 I ShiYinProbe: {"wall":1794891017000,"elapsed":72890121,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=39996 routeType=2 elapsed=45079"}
+11-17 12:50:22.005 22710 22710 I ShiYinProbe: {"wall":1794891022005,"elapsed":72895126,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=4940 routeType=2 elapsed=50084"}
+11-17 12:50:27.007 22710 22710 I ShiYinProbe: {"wall":1794891027007,"elapsed":72900128,"event":"playing","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"isPlaying=true position=9942 routeType=2 elapsed=55086"}
+11-17 12:50:31.926 22710 22710 I ShiYinProbe: {"wall":1794891031926,"elapsed":72905047,"event":"stop","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":"reason=duration_limit playedMs=60005"}
+11-17 12:50:31.939 22710 22710 I ShiYinProbe: {"wall":1794891031939,"elapsed":72905060,"event":"service_destroy","target":37,"run":"8fdfb199-b086-4748-a6c8-0eb7cbb592fb","detail":""}
+# During playback: isForeground=true types=0x00000002; mAllowStart_noBinding=ALARM_MANAGER_ALARM_CLOCK; mAllowWiu_noBinding=DENIED; TAKE_AUDIO_FOCUS=foreground.

@@ -1,0 +1,35 @@
+Before alarm:
+* ServiceRecord{d09db69 u0 com.Huffer342.shiyin/.AlarmStandbyService c:com.Huffer342.shiyin}
+    app=ProcessRecord{3a4a9fe 8428:com.Huffer342.shiyin/u0a488}
+    mAllowWiu_noBinding=PROC_STATE_TOP
+    isForeground=true foregroundId=1004 types=0x00000400 foregroundNoti=Notification(channel=alarm_standby shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 category=service groupKey=silent vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0)
+    RTC_WAKEUP #7: Alarm{279dff0 type 0 origWhen 1794907800000 flags 3 windowLength 0 whenElapsed 3202373688 maxWhenElapsed 3202373688 repeatInterval 0 tag=*walarm*:com.Huffer342.shiyin.ALARM originWhenElapsed 3202373688 originWindowLength 0 setAtTime=2026-11-17 09:27:30 policyWhenElapsed:[3202373688, 3202224440, 0, 0] procName=com.Huffer342.shiyin com.Huffer342.shiyin}
+        triggerTime=2026-11-17 17:30:00.000
+    RTC_WAKEUP #210: Alarm{c5f4c0c type 0 origWhen 1794970620000 flags 3 windowLength 0 whenElapsed 3265193688 maxWhenElapsed 3265193688 repeatInterval 0 tag=*walarm*:com.Huffer342.shiyin.ALARM originWhenElapsed 3265193688 originWindowLength 0 setAtTime=2026-11-17 09:13:02 policyWhenElapsed:[3265193688, 3201356398, 0, 0] procName=com.Huffer342.shiyin com.Huffer342.shiyin}
+  Next wake from idle: Alarm{279dff0 type 0 origWhen 1794907800000 flags 3 windowLength 0 whenElapsed 3202373688 maxWhenElapsed 3202373688 repeatInterval 0 tag=*walarm*:com.Huffer342.shiyin.ALARM originWhenElapsed 3202373688 originWindowLength 0 setAtTime=2026-11-17 09:27:30 policyWhenElapsed:[3202373688, 3202224440, 0, 0] procName=com.Huffer342.shiyin com.Huffer342.shiyin}
+      triggerTime=2026-11-17 17:30:00.000
+Tue Nov 17 17:28:10 +08 2026
+During playback:
+Tue Nov 17 17:30:27 +08 2026
+  * ServiceRecord{d09db69 u0 com.Huffer342.shiyin/.AlarmStandbyService c:com.Huffer342.shiyin}
+    mAllowWiu_noBinding=PROC_STATE_TOP
+    isForeground=true foregroundId=1004 types=0x00000400 foregroundNoti=Notification(channel=alarm_standby shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 category=service groupKey=silent vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0)
+  * ServiceRecord{21eeabf u0 com.Huffer342.shiyin/.PlaybackService c:com.Huffer342.shiyin}
+    mAllowWiu_noBinding=TEMP_ALLOWED_WHILE_IN_USE
+    isForeground=true foregroundId=1001 types=0x00000002 foregroundNoti=Notification(channel=default_channel_id shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONLY_ALERT_ONCE|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 category=transport groupKey=media3_group_key actions=2 vis=PUBLIC internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0)
+TAKE_AUDIO_FOCUS: foreground; time=+27s259ms ago; rejectTime=+6h33m26s986ms ago
+
+      package=com.Huffer342.shiyin
+      launchIntent=PendingIntent{22ed3be: PendingIntentRecord{42a2c5a com.Huffer342.shiyin startActivity (allowlist: a090ace:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+      mediaButtonReceiver=null
+--
+      state=PlaybackState {state=PLAYING(3), position=23765, buffered position=45000, speed=1.0, updated=3202398164, actions=7339995, custom actions=[], active item id=0, error=null}
+      audioAttrs=AudioAttributes: usage=USAGE_ALARM content=CONTENT_TYPE_MUSIC flags=0x800 tags= bundle=null
+      volumeType=LOCAL, controlType=ABSOLUTE, max=0, current=0, volumeControlId=null
+After playback:
+Tue Nov 17 17:32:16 +08 2026
+  mWakefulness=Awake
+      showing=false
+  * ServiceRecord{d09db69 u0 com.Huffer342.shiyin/.AlarmStandbyService c:com.Huffer342.shiyin}
+    isForeground=true foregroundId=1004 types=0x00000400 foregroundNoti=Notification(channel=alarm_standby shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 category=service groupKey=silent vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0)
+    RTC_WAKEUP #209: Alarm{621a758 type 0 origWhen 1794970620000 flags 3 windowLength 0 whenElapsed 3265193688 maxWhenElapsed 3265193688 repeatInterval 0 tag=*walarm*:com.Huffer342.shiyin.ALARM originWhenElapsed 3265193688 originWindowLength 0 setAtTime=2026-11-17 09:31:13 policyWhenElapsed:[3265193688, 3202447329, 0, 0] procName=com.Huffer342.shiyin com.Huffer342.shiyin}

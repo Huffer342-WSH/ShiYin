@@ -1,0 +1,35 @@
+ACTIVITY MANAGER SERVICES (dumpsys activity services)
+  User 0 active services:
+  * ServiceRecord{7af1c4f u0 com.Huffer342.shiyin.alarmprobe/.ProbeService c:com.Huffer342.shiyin.alarmprobe}
+    intent={act=PLAY cmp=com.Huffer342.shiyin.alarmprobe/.ProbeService}
+    packageName=com.Huffer342.shiyin.alarmprobe
+    processName=com.Huffer342.shiyin.alarmprobe
+    targetSdkVersion=37
+    app=null
+    useNewWiuLogic_forCapabilities()=true
+    useNewWiuLogic_forStart()=true
+    useNewBfslLogic()=true
+    mAllowWiu_noBinding=DENIED
+    mAllowWiu_inBindService=DENIED
+    mAllowWiu_byBindings=DENIED
+    getFgsAllowWiu_legacy=DENIED
+    getFgsAllowWiu_new=DENIED
+    getFgsAllowWiu_forStart=DENIED
+    getFgsAllowWiu_forCapabilities=DENIED
+    allowUiJobScheduling=false
+    recentCallingPackage=com.Huffer342.shiyin.alarmprobe
+    recentCallingUid=10491
+    mAllowStart_noBinding=ALARM_MANAGER_ALARM_CLOCK
+    mAllowStart_inBindService=DENIED
+    mAllowStart_byBindings=DENIED
+    getFgsAllowStart_legacy=ALARM_MANAGER_ALARM_CLOCK
+    getFgsAllowStart_new=ALARM_MANAGER_ALARM_CLOCK
+    getFgsAllowStart=ALARM_MANAGER_ALARM_CLOCK
+    startForegroundCount=0
+    infoAllowStartForeground=[callingPackage: com.Huffer342.shiyin.alarmprobe; callingUid: 10491; uidState: LAST; uidBFSL: n/a; intent: Intent { act=PLAY cmp=com.Huffer342.shiyin.alarmprobe/.ProbeService (has extras) }; code:ALARM_MANAGER_ALARM_CLOCK; tempAllowListReason:<,reasonCode:ALARM_MANAGER_ALARM_CLOCK,duration:10000,callingUid:1000>; targetSdkVersion:37; callerTargetSdkVersion:37; startForegroundCount:0; bindFromPackage:null: isBindService:false]
+    createTime=-20s846ms startingBgTimeout=--
+    lastActivity=-20s845ms restartTime=-- createdFromFg=true
+    User 0: [data inode omitted] installed=true hidden=false vHidden=1 suspended=false distractionFlags=0 stopped=false vStopped=false notLaunched=false enabled=0 instant=false virtual=false quarantined=false
+    User 666: [data inode omitted] installed=false hidden=false vHidden=1 suspended=false distractionFlags=0 stopped=true vStopped=false notLaunched=true enabled=0 instant=false virtual=false quarantined=false
+    User 999: [data inode omitted] installed=false hidden=false vHidden=1 suspended=false distractionFlags=0 stopped=true vStopped=false notLaunched=true enabled=0 instant=false virtual=false quarantined=false
+    User 0:

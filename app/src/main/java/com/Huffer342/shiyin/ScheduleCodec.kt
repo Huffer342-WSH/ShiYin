@@ -14,6 +14,7 @@ object ScheduleCodec {
                 put("date", s.date.toString())
                 put("weekdays", JSONArray(s.weekdays.map { it.value }.sorted()))
                 put("stopMinutes", s.stopMinutes); put("enabled", s.enabled)
+                put("countdownAt", s.countdownAt); put("countdownSeconds", s.countdownSeconds)
                 put("nextAt", s.nextAt); put("status", s.status); put("fadeSeconds", s.fadeSeconds)
             })
         }
@@ -31,7 +32,8 @@ object ScheduleCodec {
                 weekdays = (0 until days.length()).map { DayOfWeek.of(days.getInt(it)) }.toSet(),
                 stopMinutes = o.getInt("stopMinutes"), enabled = o.getBoolean("enabled"),
                 nextAt = o.optLong("nextAt", 0), status = o.optString("status", ""),
-                fadeSeconds = o.optInt("fadeSeconds", 0)
+                fadeSeconds = o.optInt("fadeSeconds", 0), countdownAt = o.optLong("countdownAt", 0),
+                countdownSeconds = o.optLong("countdownSeconds", 0)
             )
         }
         require(result.map { it.id }.distinct().size == result.size) { "任务编号重复" }

@@ -1,0 +1,10 @@
+* ServiceRecord{5fbf9ca u0 com.Huffer342.shiyin.alarmprobe/.WaitingService c:com.Huffer342.shiyin.alarmprobe}
+    app=ProcessRecord{282e4ba 20913:com.Huffer342.shiyin.alarmprobe/u0a491}
+    mAllowWiu_noBinding=PROC_STATE_TOP
+    mAllowStart_noBinding=PROC_STATE_TOP
+    isForeground=true foregroundId=2 types=0x00000400 foregroundNoti=Notification(channel=waiting shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0)
+20913
+[V] will control stream=4 (STREAM_ALARM)
+[V] will get volume
+[V] Connecting to AudioService
+[V] volume is 133 in range [0..150]

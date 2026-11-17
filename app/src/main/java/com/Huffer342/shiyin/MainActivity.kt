@@ -15,6 +15,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -71,8 +76,12 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
     var showPlayer by rememberSaveable { mutableStateOf(false) }
     var showQueue by rememberSaveable { mutableStateOf(false) }
     var sleepDialog by rememberSaveable { mutableStateOf(false) }
+    val helpPrefs = remember { activity.getSharedPreferences("shiyin", android.content.Context.MODE_PRIVATE) }
     var help by rememberSaveable { mutableStateOf(false) }
+    var setup by rememberSaveable { mutableStateOf(false) }
+    var countdownDialog by rememberSaveable { mutableStateOf(false) }
     var rootMenu by remember { mutableStateOf(false) }
+    var closing by remember { mutableStateOf(false) }
     var nameAction by rememberSaveable { mutableStateOf<String?>(null) }
     var addTrackUri by rememberSaveable { mutableStateOf<String?>(null) }
     var manageSongs by rememberSaveable { mutableStateOf(false) }
@@ -106,6 +115,24 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
         revision++
         if (!granted) permissionDialog = "notificationSettings"
     }
+    val initialPermissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        revision++
+        if (MusicLibrary.hasPermission(activity)) model.scan()
+        help = !helpPrefs.getBoolean("manual_seen_v1", false)
+    }
+    LaunchedEffect(Unit) {
+        if (!helpPrefs.getBoolean("runtime_requested_v1", false)) {
+            val missing = buildList {
+                if (!MusicLibrary.hasPermission(activity)) add(MusicLibrary.permission)
+                if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(activity,
+                        Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                    add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            helpPrefs.edit().putBoolean("runtime_requested_v1", true).apply()
+            if (missing.isNotEmpty()) initialPermissions.launch(missing.toTypedArray())
+            else help = !helpPrefs.getBoolean("manual_seen_v1", false)
+        }
+    }
     val requestAudio = {
         if (model.folders.isNotEmpty() || MusicLibrary.hasPermission(activity)) model.scan()
         else directoryPicker.launch(null)
@@ -123,6 +150,24 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
         if (selected == null) { page = ""; scope.launch { pager.scrollToPage(0) }; model.notify("请先选择音频目录或扫描歌曲") }
         else { draftUri = selected.uri; draftTitle = selected.title; editorId = "new"; focus.clearFocus() }
     }
+    fun runInBackground() {
+        if (closing) return
+        if (!model.loaded || model.busy) { model.notify("正在更新，请稍后重试"); return }
+        closing = true
+        scope.launch {
+            try {
+                AlarmStandbyService.prepareForExit(activity)
+                activity.finishAndRemoveTask()
+            } catch (error: kotlinx.coroutines.TimeoutCancellationException) {
+                model.notify("后台等待启动超时，页面已保留，请重试")
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                model.notify(error.message ?: "后台运行失败，页面已保留")
+            } finally { closing = false }
+        }
+    }
+
     fun up() {
         when {
             page == "theme" -> page = "settings"
@@ -158,16 +203,19 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
     LaunchedEffect(model.playlists, model.loaded) {
         if (model.loaded && playlistId != null && currentPlaylist == null) playlistId = null
     }
+    BackHandler(enabled = editorId == null && !showPlayer && primary && playlistId == null && folderUri == null && tab == 0) { runInBackground() }
     BackHandler(enabled = editorId == null && !showPlayer && (page.isNotEmpty() || playlistId != null || folderUri != null || tab != 0)) { up() }
     BackHandler(enabled = editorId == null && showPlayer && !showQueue && !sleepDialog) { showPlayer = false }
 
+    var backgroundProgress by remember { mutableFloatStateOf(0f) }
+    val backgroundAction by rememberUpdatedState({ runInBackground() })
     val audioAllowed = remember(revision) { MusicLibrary.hasPermission(activity) }
     val exactAllowed = remember(revision) { ScheduleScheduler.canSchedule(activity) }
     val notificationsAllowed = remember(revision) {
         Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
 
-    Box(Modifier.fillMaxSize()) {
+    BackgroundTransition({ if (closing) 1f else backgroundProgress }, closing) {
         when {
             editorId != null -> {
                 val original = model.schedules.find { it.id == editorId }
@@ -227,6 +275,7 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                                                 DropdownMenuItem(text = { Text("重命名") }, onClick = { rootMenu = false; nameAction = "rename" })
                                                 DropdownMenuItem(text = { Text("删除播放列表") }, onClick = { rootMenu = false; deletePlaylistId = playlistId })
                                             }
+                                            DropdownMenuItem(text = { Text("倒计时闹钟") }, onClick = { rootMenu = false; countdownDialog = true })
                                             if (primary) DropdownMenuItem(text = { Text("刷新音乐库") }, onClick = { rootMenu = false; requestAudio() })
                                             if (page != "settings") DropdownMenuItem(text = { Text("设置") }, onClick = { rootMenu = false; page = "settings" })
                                             DropdownMenuItem(text = { Text("帮助") }, onClick = { rootMenu = false; help = true })
@@ -238,7 +287,7 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                             Column {
                                 if (model.playback.title.isNotEmpty()) MiniPlayer(model.playback,
                                     { focus.clearFocus(); showPlayer = true }, model::toggle, model::next)
-                                if (!wide && primary) NavigationBar {
+                                if (!wide && primary) BackgroundNavigation(backgroundAction, { backgroundProgress = it }) {
                                     labels.forEachIndexed { index, label ->
                                         NavigationBarItem(selected = tab == index, onClick = { navigate(index) },
                                             icon = { Icon(icons[index], null) }, label = { Text(label) }, modifier = Modifier.testTag("nav_$index"))
@@ -260,7 +309,7 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                                 requestExact, {
                                     if (Build.VERSION.SDK_INT >= 33 && !notificationsAllowed) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     else settings()
-                                }, { settings() }, model::updateCalendar, { page = "theme" }, { help = true })
+                                }, { setup = true }, model::updateCalendar, { page = "theme" }, { help = true })
                             "theme" -> ThemeScreen(model.theme, padding, model::updateTheme)
                             else -> when {
                                 currentPlaylist != null -> PlaylistDetailScreen(currentPlaylist, padding,
@@ -282,7 +331,14 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                                         2 -> FolderListScreen(model.folders, model.folderScans, inner,
                                             { directoryPicker.launch(null) }, { folderUri = it }, { removeFolderUri = it.uri })
                                         3 -> ScheduleListScreen(model.schedules, model.busy, exactAllowed, inner, scheduleList,
-                                            { newAlarm() }, { editorId = it.id }, { schedule, enabled -> model.save(schedule.copy(enabled = enabled)) },
+                                            { newAlarm() }, { if (!model.busy) {
+                                                if (it.countdownSeconds > 0) model.save(restartCountdown(it, System.currentTimeMillis()))
+                                                else if (it.countdownAt > 0) { countdownDialog = true; model.notify("旧倒计时未保存总时长，请重新设置一次") }
+                                                else editorId = it.id
+                                            } }, { schedule, enabled ->
+                                                if (enabled && schedule.countdownSeconds > 0) model.save(restartCountdown(schedule, System.currentTimeMillis()))
+                                                else model.save(schedule.copy(enabled = enabled))
+                                            },
                                             { deleteAlarmId = it.id }, { model.preview(Song(it.uri, it.title, "", 0), it.fadeSeconds) }, requestExact)
                                         else -> LibraryScreen(model.songs, model.playback, audioAllowed || model.folders.isNotEmpty(),
                                             model.connected, model.busy, inner, libraryList, query, { query = it },
@@ -301,12 +357,20 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
         }
         if (editorId != null || showPlayer) SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(12.dp))
     }
+    if (setup) StartupSetupDialog(activity, { model.scan(); revision++ }) {
+        helpPrefs.edit().putBoolean("setup_seen_v1", true).apply()
+        setup = false
+        help = !helpPrefs.getBoolean("manual_seen_v1", false)
+    }
     if (showQueue) QueueSheet(model.playback, { showQueue = false }, { model.selectQueue(it) },
         model::removeQueue, model::moveQueue, { showQueue = false; nameAction = "queue" })
     if (sleepDialog) SleepTimerDialog(model.playback.sleepRemaining, { sleepDialog = false }) {
         model.setSleepTimer(it); sleepDialog = false
     }
-    if (help) PlayerHelpDialog { help = false }
+    if (help) PlayerHelpDialog { helpPrefs.edit().putBoolean("manual_seen_v1", true).apply(); help = false }
+    if (countdownDialog) CountdownDialog(model.songs, model.busy, { countdownDialog = false }) { value ->
+        model.save(value) { countdownDialog = false; page = ""; scope.launch { pager.scrollToPage(3) } }
+    }
     if (manageSongs && currentPlaylist != null) ManageSongsSheet(currentPlaylist, model.songs, { manageSongs = false }) { values ->
         model.changePlaylist(currentPlaylist.id, onChanged = { manageSongs = false }) { it.copy(songs = values) }
     }

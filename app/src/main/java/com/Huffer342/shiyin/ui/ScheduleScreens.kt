@@ -78,7 +78,9 @@ fun ScheduleListScreen(
                     if (schedule.enabled) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surfaceContainer)) {
                 Column(Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(timeText(schedule.hour, schedule.minute), style = MaterialTheme.typography.displayMedium.copy(
+                        if (schedule.countdownAt > 0) Column(Modifier.weight(1f)) {
+                            CountdownRemaining(schedule.countdownAt, schedule.enabled, schedule.countdownSeconds)
+                        } else Text(timeText(schedule.hour, schedule.minute), style = MaterialTheme.typography.displayMedium.copy(
                             fontSize = 44.sp, fontWeight = FontWeight.Medium),
                             color = if (schedule.enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f))
@@ -102,7 +104,7 @@ fun ScheduleListScreen(
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                                 DropdownMenuItem(text = { Text("试听") }, leadingIcon = { Icon(Icons.Rounded.Headphones, null) },
                                     onClick = { menu = false; onPreview(schedule) })
-                                DropdownMenuItem(text = { Text("编辑") }, leadingIcon = { Icon(Icons.Rounded.Edit, null) },
+                                DropdownMenuItem(text = { Text(if (schedule.countdownAt > 0) "重新计时" else "编辑") }, leadingIcon = { Icon(Icons.Rounded.Edit, null) },
                                     onClick = { menu = false; onEdit(schedule) })
                                 DropdownMenuItem(text = { Text("删除") }, leadingIcon = { Icon(Icons.Rounded.DeleteOutline, null) },
                                     onClick = { menu = false; onDelete(schedule) }, enabled = !busy)
@@ -356,7 +358,7 @@ fun SectionLabel(text: String) {
 
 fun weekdayName(day: DayOfWeek) = listOf("一", "二", "三", "四", "五", "六", "日")[day.value - 1]
 fun timeText(hour: Int, minute: Int) = String.format(Locale.ROOT, "%02d:%02d", hour, minute)
-fun ruleText(schedule: Schedule): String = when (schedule.rule) {
+fun ruleText(schedule: Schedule): String = if (schedule.countdownAt > 0) "倒计时 · " + Instant.ofEpochMilli(schedule.countdownAt).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm:ss")) else when (schedule.rule) {
     RepeatRule.ONCE -> schedule.date.format(DateTimeFormatter.ofPattern("M月d日")) + " · 仅一次"
     RepeatRule.WORKDAY -> "中国大陆工作日"
     RepeatRule.WEEKLY -> if (schedule.weekdays.size == 7) "每天"

@@ -84,6 +84,24 @@ class PlaybackService : MediaSessionService() {
         }
     }
     private val stopTimer = Runnable { finishPlayback() }
+    private var startupWake: android.os.PowerManager.WakeLock? = null
+    private val preparationTimeout = Runnable {
+        reportFailure("音频准备超时，请检查文件后重试")
+        finishPlayback()
+    }
+
+    private fun setPreparingAlarm(preparing: Boolean) {
+        handler.removeCallbacks(preparationTimeout)
+        startupWake?.let { if (it.isHeld) it.release() }
+        startupWake = null
+        AlarmStandbyService.playbackPreparing(preparing)
+        if (preparing) {
+            startupWake = getSystemService(android.os.PowerManager::class.java)
+                .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "$packageName:alarm_start")
+                .apply { acquire(16_000) }
+            handler.postDelayed(preparationTimeout, 15_000)
+        }
+    }
     private val audioManager by lazy { getSystemService(AudioManager::class.java) }
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
         if (change == AudioManager.AUDIOFOCUS_LOSS ||
@@ -109,7 +127,10 @@ class PlaybackService : MediaSessionService() {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     handler.removeCallbacks(fadeTick)
                     fadeTickAt = 0
-                    if (alarmMode && isPlaying) handler.post(fadeTick)
+                    if (alarmMode && isPlaying) {
+                        handler.post(fadeTick)
+                        setPreparingAlarm(false)
+                    }
                 }
 
                 override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -190,11 +211,16 @@ class PlaybackService : MediaSessionService() {
                     })
                 }
             }).build()
+        addSession(session)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession = session
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == AlarmPresentation.STOP) {
+            if (isCurrentRingingToken(intent.getStringExtra("token"), AlarmPresentation.current.value)) finishPlayback()
+            return START_NOT_STICKY
+        }
         if (intent?.action != ACTION_ALARM && intent?.action != ACTION_PREVIEW) {
             return super.onStartCommand(intent, flags, startId)
         }
@@ -202,6 +228,7 @@ class PlaybackService : MediaSessionService() {
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle("时音").setContentText("正在准备定时音频")
             .setContentIntent(openApp()).setSilent(true).setOngoing(true).build())
+        setPreparingAlarm(true)
         val request = ++generation
         scope.launch {
             try {
@@ -220,7 +247,7 @@ class PlaybackService : MediaSessionService() {
                 }
                 if (request != generation) return@launch
                 if (schedule == null) {
-                    if (!player.isPlaying) finishPlayback()
+                    if (!player.isPlaying) finishPlayback() else setPreparingAlarm(false)
                     return@launch
                 }
                 startAlarm(schedule, intent.action == ACTION_PREVIEW)
@@ -253,6 +280,8 @@ class PlaybackService : MediaSessionService() {
         deadline = SystemClock.elapsedRealtime() + duration
         publishTimers()
         check(requestAlarmFocus()) { "闹钟音频焦点被拒绝，未开始播放" }
+        AlarmPresentation.clear(this)
+        if (!preview) AlarmPresentation.show(this, schedule.title, deadline)
         player.shuffleModeEnabled = false
         player.repeatMode = Player.REPEAT_MODE_ONE
         player.setMediaItem(MediaItem.Builder().setMediaId(schedule.uri).setUri(schedule.uri)
@@ -266,6 +295,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun useManualMode() {
+        AlarmPresentation.clear(this)
+        setPreparingAlarm(false)
         ++generation
         handler.removeCallbacks(stopTimer)
         player.pause()
@@ -343,6 +374,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun finishPlayback() {
+        AlarmPresentation.clear(this)
+        setPreparingAlarm(false)
         ++generation
         handler.removeCallbacks(stopTimer)
         player.pause()
@@ -369,6 +402,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        AlarmPresentation.clear(this)
+        setPreparingAlarm(false)
         scope.cancel()
         audioManager.unregisterAudioDeviceCallback(devices)
         handler.removeCallbacksAndMessages(null)

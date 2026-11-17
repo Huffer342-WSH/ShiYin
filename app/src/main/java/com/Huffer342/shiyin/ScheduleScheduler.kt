@@ -101,6 +101,8 @@ class ScheduleReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 ScheduleScheduler.reschedule(context, force = true)
+                if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED)
+                    AlarmStandbyService.restoreAfterBoot(context)
             } catch (e: Exception) {
                 AppStore.notice(context, e.message ?: "恢复定时任务失败，请打开时音检查")
             } finally {
