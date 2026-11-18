@@ -19,6 +19,8 @@
 
 ## 开发与文档
 
+日常开发使用 `dev` 分支；功能与测试完成后通过 PR 合入 `main`。PR 和 main push 执行 CI，普通 dev push 不构建 App。main CI 成功后，在同一提交上推送版本 tag，Release 会复用已验证 APK。工具链镜像由独立 workflow 发布至本仓库 GHCR，详情见[构建与发布](docs/构建与发布.md)。
+
 | 要做什么 | 阅读入口 |
 | --- | --- |
 | 了解播放器、目录、闹钟及数据保存 | [项目说明](docs/项目说明.md) |

@@ -5,6 +5,7 @@ plugins {
 
 android {
     namespace = "com.Huffer342.shiyin"
+    buildToolsVersion = "37.0.0"
     compileSdk {
         version = release(37)
     }
@@ -13,8 +14,8 @@ android {
         applicationId = "com.Huffer342.shiyin"
         minSdk = 24
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.1.1"
+        versionCode = 4
+        versionName = "1.1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -1,135 +1,17 @@
-name: Android CI
-
+name: CI
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
-    tags: ['v*']
   workflow_dispatch:
-
 permissions:
   contents: read
-
+  packages: read
 concurrency:
-  group: android-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
-
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v5
-      - name: Install Android SDK
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0"'
-      - name: Build app and test APKs
-        env:
-          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:assembleDebug :app:assembleDebugAndroidTest :app:compileDebugUnitTestKotlin
-      - name: Record APK checksums
-        working-directory: app/build/outputs/apk
-        run: sha256sum debug/app-debug.apk androidTest/debug/app-debug-androidTest.apk > SHA256SUMS
-      - uses: actions/upload-artifact@v6
-        with:
-          name: android-apks
-          path: app/build/outputs/apk/
-          if-no-files-found: error
-          retention-days: 14
-
-  test:
-    needs: build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v5
-      - name: Install Android SDK
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0"'
-      - uses: actions/download-artifact@v7
-        with:
-          name: android-apks
-          path: dist
-      - name: Verify build artifacts
-        working-directory: dist
-        run: sha256sum -c SHA256SUMS
-      - name: Unit tests and lint
-        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:testDebugUnitTest :app:lintDebug
-      - name: Reserve disk space for emulator
-        run: |
-          # Disposable hosted runner only; this Kotlin app does not use .NET or the NDK.
-          sudo rm -rf /usr/share/dotnet "$ANDROID_HOME/ndk"
-          df -h /
-          available_kb=$(df -Pk / | awk 'NR==2 {print $4}')
-          test "$available_kb" -gt 12582912
-      - name: Enable KVM
-        run: sudo chmod a+rw /dev/kvm
-      - name: Test the built APKs on Android 15
-        timeout-minutes: 15
-        uses: reactivecircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808 # v2
-        with:
-          api-level: 35
-          arch: x86_64
-          target: google_apis
-          disk-size: 2048M
-          emulator-boot-timeout: 300
-          disable-animations: true
-          script: |
-            adb install -r dist/debug/app-debug.apk
-            adb install -r dist/androidTest/debug/app-debug-androidTest.apk
-            timeout 180s adb shell am instrument -w -r -e class com.Huffer342.shiyin.PlaybackVisualTest com.Huffer342.shiyin.test/androidx.test.runner.AndroidJUnitRunner | tee instrumentation.log
-            grep -Eq 'OK \([1-9][0-9]* tests?\)' instrumentation.log
-            ! grep -Eq 'FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed' instrumentation.log
-      - name: Upload validation reports
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: android-reports
-          path: |
-            app/build/reports/tests/testDebugUnitTest/
-            app/build/test-results/testDebugUnitTest/
-            app/build/reports/lint-results-debug.*
-            instrumentation.log
-          if-no-files-found: warn
-          retention-days: 14
-
-  release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build, test]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@v7
-        with:
-          name: android-apks
-          path: dist
-      - name: Verify tested artifacts
-        working-directory: dist
-        run: sha256sum -c SHA256SUMS
-      - name: Publish tested APK
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          gh release create "$RELEASE_TAG" dist/debug/app-debug.apk dist/SHA256SUMS \
-            --verify-tag --title "ShiYin $RELEASE_TAG" \
-            --notes-file "docs/releases/$RELEASE_TAG.md"
+  checks:
+    uses: ./.github/workflows/checks.yml
+    secrets: inherit
