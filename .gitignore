@@ -1,15 +1,25 @@
+# Local IDE and build state
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+/.idea/
+.gradle/
+.kotlin/
+**/build/
+/.container/
+/captures/
+.externalNativeBuild/
+.cxx/
 local.properties
+.DS_Store
+
+# Locally installed skills; keep the curated project UI skill in Git.
+/.agents/skills/*
+!/.agents/skills/mobile-android-design/
+
+# Credentials and generated packages
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.apk
+*.aab

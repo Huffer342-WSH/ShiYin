@@ -5,6 +5,7 @@ plugins {
 
 android {
     namespace = "com.Huffer342.shiyin"
+    buildToolsVersion = "37.0.0"
     compileSdk {
         version = release(37)
     }
