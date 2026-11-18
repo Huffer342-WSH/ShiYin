@@ -1,0 +1,28 @@
+{"wall":1794902339962,"elapsed":3196913651,"event":"scheduled","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"due=1794902519958 durationMs=60000 waiting=true asset=dawn-aac.m4a"}
+{"wall":1794902339975,"elapsed":3196913663,"event":"waiting_foreground","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"pid=23399 type=systemExempted"}
+{"wall":1794902348239,"elapsed":3196921928,"event":"self_remove_task","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}
+{"wall":1794902348255,"elapsed":3196921943,"event":"activity_pause","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}
+{"wall":1794902348274,"elapsed":3196921962,"event":"activity_resume","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}
+{"wall":1794902348597,"elapsed":3196922285,"event":"activity_stop","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}
+{"wall":1794902366598,"elapsed":3196940286,"event":"activity_pause","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}
+{"wall":1794902366664,"elapsed":3196940353,"event":"activity_stop","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}
+{"wall":1794902519963,"elapsed":3197093651,"event":"service_delivery","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"action=PLAY"}
+{"wall":1794902519969,"elapsed":3197093657,"event":"foreground","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}
+{"wall":1794902519973,"elapsed":3197093662,"event":"environment","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"interactive=false locked=true alarmVolume=133\/150 musicVolume=150"}
+{"wall":1794902519976,"elapsed":3197093664,"event":"focus","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"attempt=1 result=1"}
+{"wall":1794902519985,"elapsed":3197093673,"event":"waiting_destroy","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}
+{"wall":1794902519992,"elapsed":3197093681,"event":"play_started","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"duration=45000 session=2957801"}
+{"wall":1794902519993,"elapsed":3197093681,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=0 routeType=null elapsed=1"}
+{"wall":1794902524995,"elapsed":3197098684,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=4778 routeType=2 elapsed=5003"}
+{"wall":1794902530001,"elapsed":3197103689,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=9784 routeType=2 elapsed=10009"}
+{"wall":1794902535005,"elapsed":3197108693,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=14788 routeType=2 elapsed=15013"}
+{"wall":1794902540011,"elapsed":3197113700,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=19794 routeType=2 elapsed=20020"}
+{"wall":1794902545017,"elapsed":3197118705,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=24800 routeType=2 elapsed=25025"}
+{"wall":1794902550021,"elapsed":3197123709,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=29804 routeType=2 elapsed=30029"}
+{"wall":1794902555026,"elapsed":3197128714,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=34809 routeType=2 elapsed=35034"}
+{"wall":1794902560031,"elapsed":3197133719,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=39814 routeType=2 elapsed=40039"}
+{"wall":1794902565037,"elapsed":3197138725,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=44820 routeType=2 elapsed=45045"}
+{"wall":1794902570040,"elapsed":3197143729,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=3574 routeType=2 elapsed=50049"}
+{"wall":1794902575045,"elapsed":3197148733,"event":"playing","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"isPlaying=true position=8578 routeType=2 elapsed=55053"}
+{"wall":1794902579995,"elapsed":3197153683,"event":"stop","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":"reason=duration_limit playedMs=60003"}
+{"wall":1794902580014,"elapsed":3197153702,"event":"service_destroy","target":34,"run":"e681f288-32f7-4d2f-bb76-55f2523ceddb","detail":""}

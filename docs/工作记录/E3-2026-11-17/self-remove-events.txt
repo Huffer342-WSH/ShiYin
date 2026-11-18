@@ -1,0 +1,26 @@
+{"wall":1794901072712,"elapsed":3195646400,"event":"scheduled","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"due=1794901252707 durationMs=60000 waiting=true asset=dawn-aac.m4a"}
+{"wall":1794901072726,"elapsed":3195646414,"event":"waiting_foreground","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"pid=23399 type=systemExempted"}
+{"wall":1794901090383,"elapsed":3195664071,"event":"self_remove_task","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":""}
+{"wall":1794901090398,"elapsed":3195664086,"event":"activity_pause","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":""}
+{"wall":1794901090404,"elapsed":3195664092,"event":"waiting_task_removed","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"pid=23399"}
+{"wall":1794901091194,"elapsed":3195664882,"event":"activity_stop","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":""}
+{"wall":1794901252740,"elapsed":3195826428,"event":"service_delivery","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"action=PLAY"}
+{"wall":1794901252749,"elapsed":3195826437,"event":"foreground","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":""}
+{"wall":1794901252758,"elapsed":3195826446,"event":"environment","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"interactive=false locked=true alarmVolume=133\/150 musicVolume=50"}
+{"wall":1794901252760,"elapsed":3195826448,"event":"focus","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"attempt=1 result=1"}
+{"wall":1794901252783,"elapsed":3195826471,"event":"waiting_destroy","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":""}
+{"wall":1794901252795,"elapsed":3195826483,"event":"play_started","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"duration=45000 session=2957777"}
+{"wall":1794901252796,"elapsed":3195826484,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=0 routeType=null elapsed=1"}
+{"wall":1794901257799,"elapsed":3195831487,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=4703 routeType=2 elapsed=5004"}
+{"wall":1794901262804,"elapsed":3195836493,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=9708 routeType=2 elapsed=10010"}
+{"wall":1794901267811,"elapsed":3195841499,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=14715 routeType=2 elapsed=15016"}
+{"wall":1794901272813,"elapsed":3195846501,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=19717 routeType=2 elapsed=20018"}
+{"wall":1794901277817,"elapsed":3195851505,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=24721 routeType=2 elapsed=25022"}
+{"wall":1794901282823,"elapsed":3195856511,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=29727 routeType=2 elapsed=30028"}
+{"wall":1794901287829,"elapsed":3195861517,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=34733 routeType=2 elapsed=35034"}
+{"wall":1794901292834,"elapsed":3195866522,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=39738 routeType=2 elapsed=40039"}
+{"wall":1794901297837,"elapsed":3195871525,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=44741 routeType=2 elapsed=45042"}
+{"wall":1794901302843,"elapsed":3195876531,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=4546 routeType=2 elapsed=50048"}
+{"wall":1794901307849,"elapsed":3195881537,"event":"playing","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"isPlaying=true position=9552 routeType=2 elapsed=55054"}
+{"wall":1794901312801,"elapsed":3195886489,"event":"stop","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":"reason=duration_limit playedMs=60006"}
+{"wall":1794901312818,"elapsed":3195886506,"event":"service_destroy","target":34,"run":"2d96b2ec-93ed-4f47-91b1-52a2c87bb30f","detail":""}

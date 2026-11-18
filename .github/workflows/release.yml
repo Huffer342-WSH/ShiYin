@@ -1,0 +1,99 @@
+name: Release
+on:
+  push:
+    tags: ['pre-v*', 'release-v*']
+permissions:
+  contents: read
+  actions: read
+  packages: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.commit.outputs.version }}
+      run_id: ${{ steps.ci.outputs.run_id }}
+      commit: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: commit
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^(pre|release)-v((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$ ]]
+          printf 'version=%s\n' "${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
+          git merge-base --is-ancestor HEAD origin/main
+          printf 'sha=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - id: ci
+        uses: actions/github-script@v8
+        env:
+          RELEASE_COMMIT: ${{ steps.commit.outputs.sha }}
+        with:
+          script: |
+            await require('./.github/scripts/release-source.cjs').findSource({ github, context, core });
+
+  verify:
+    needs: source
+    if: needs.source.outputs.run_id == ''
+    uses: ./.github/workflows/checks.yml
+
+  publish:
+    needs: [source, verify]
+    if: ${{ !cancelled() && needs.source.result == 'success' && (needs.source.outputs.run_id != '' || needs.verify.result == 'success') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
+        with:
+          name: android-apks
+          path: dist
+          run-id: ${{ needs.source.outputs.run_id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify APK identities
+        env:
+          VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          aapt=$(printf '%s\n' "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
+          for apk in dist/debug/app-debug.apk dist/release/app-release-unsigned.apk; do
+            manifest=$("$aapt" dump badging "$apk")
+            package_line=$(grep '^package:' <<< "$manifest")
+            [[ "$package_line" == "package: name='com.Huffer342.shiyin' "* ]]
+            [[ "$package_line" == *" versionName='$VERSION' "* ]]
+            if [[ "$apk" == dist/release/* ]] && grep -qx 'application-debuggable' <<< "$manifest"; then exit 1; fi
+          done
+      - name: Sign Release APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SHIYIN_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.SHIYIN_STORE_PASSWORD }}
+          VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          set -eu
+          umask 077
+          key=$(mktemp)
+          trap 'rm -f "$key"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$key"
+          signer=$(printf '%s\n' "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$signer" sign --ks "$key" --ks-pass env:STORE_PASSWORD --out "ShiYin-$VERSION-release.apk" dist/release/app-release-unsigned.apk
+          "$signer" verify "ShiYin-$VERSION-release.apk"
+          cp dist/debug/app-debug.apk "ShiYin-$VERSION-debug.apk"
+      - name: Publish APKs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          flags=(--latest)
+          if [[ "$RELEASE_TAG" == pre-* ]]; then flags=(--prerelease --latest=false); fi
+          gh release create "$RELEASE_TAG" "ShiYin-$VERSION-release.apk" "ShiYin-$VERSION-debug.apk" \
+            --verify-tag "${flags[@]}" --title "ShiYin $VERSION" --notes-file "docs/releases/v$VERSION.md"

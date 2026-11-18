@@ -1,0 +1,113 @@
+name: Android Checks
+on:
+  workflow_call:
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    outputs:
+      ref: ${{ steps.ref.outputs.image }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - id: ref
+        shell: bash
+        run: |
+          image=$(<docker/android/image.txt)
+          [[ "$image" =~ ^ghcr.io/huffer342-wsh/shiyin-build@sha256:[a-f0-9]{64}$ ]]
+          printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: ${{ needs.image.outputs.ref }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRADLE_USER_HOME: /github/home/.gradle
+      JAVA_TOOL_OPTIONS: -Duser.home=/github/home
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Check release reuse policy
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { execFileSync } = require('node:child_process');
+            execFileSync(process.execPath, ['--test', '.github/scripts/release-source.test.cjs'], { stdio: 'inherit' });
+      - name: Lint
+        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:lintDebug
+      - name: Unit tests
+        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:testDebugUnitTest
+      - name: Build APKs
+        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease
+      - uses: actions/upload-artifact@v6
+        with:
+          name: android-apks
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload unit and lint reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: unit-lint-reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  emulator:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: android-apks
+          path: dist
+      - name: Prepare hosted runner
+        run: |
+          sudo rm -rf /usr/share/dotnet "$ANDROID_HOME/ndk"
+          available_kb=$(df -Pk / | awk 'NR==2 {print $4}')
+          test "$available_kb" -gt 12582912
+          sudo chmod a+rw /dev/kvm
+      - name: Android 15 playback regression
+        timeout-minutes: 15
+        uses: reactivecircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disk-size: 2048M
+          emulator-boot-timeout: 300
+          disable-animations: true
+          script: |
+            adb install -r dist/debug/app-debug.apk
+            adb install -r dist/androidTest/debug/app-debug-androidTest.apk
+            timeout 180s adb shell am instrument -w -r -e class com.Huffer342.shiyin.PlaybackVisualTest com.Huffer342.shiyin.test/androidx.test.runner.AndroidJUnitRunner | tee instrumentation.log
+            grep -Eq 'OK \([1-9][0-9]* tests?\)' instrumentation.log
+            ! grep -Eq 'FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed' instrumentation.log
+      - uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: emulator-report
+          path: instrumentation.log
+          if-no-files-found: warn
+          retention-days: 14

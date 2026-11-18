@@ -1,0 +1,8 @@
+# SHA-256; relative to experiments/alarm-probe; initial probe source 2026-11-17
+0ac0c58e165b0a7c825aabcba68baa5e38ea3094f638fe883d98cd6f08099b0a  src/main/java/com/Huffer342/shiyin/alarmprobe/ProbeActivity.kt
+4f807eaa02b40a2433d3e048e95d6baa13955a6ee024abfaa7fccd9c07ac9283  src/main/java/com/Huffer342/shiyin/alarmprobe/ProbeLog.kt
+58474faa7ec2e737ab135a8d63ab114be795de0ef44b5499d704e37ecd82057c  src/main/java/com/Huffer342/shiyin/alarmprobe/ProbeService.kt
+4ea1ae7d36205151e04c7ea2131357f93f99c5859dbdc390819e30e89c252e07  src/main/java/com/Huffer342/shiyin/alarmprobe/RunWindow.kt
+5cad81cd203758302d31abe335bc214507d57a072a692bd96b6ec1a26e0e1422  src/main/AndroidManifest.xml
+46f2afc3adcaf9d5f4bd482d53d632744baf6f32eccac07064060ef735951fec  build.gradle.kts
+31b1beed4fe2c97ca52d1c48ce89ba02a195c379b98d94fceed8fa689274c95e  settings.gradle.kts
