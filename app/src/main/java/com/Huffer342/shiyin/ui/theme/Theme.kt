@@ -22,14 +22,14 @@ import com.Huffer342.shiyin.*
 fun ShiYinTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
-    settings: ThemeSettings? = null,
+    settings: ThemeSettings = ThemeSettings(wallpaper = dynamicColor),
     content: @Composable () -> Unit
 ) {
-    val dark = when (settings?.mode) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; else -> darkTheme }
+    val dark = when (settings.mode) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; else -> darkTheme }
     val base = if (dark) DarkColors else LightColors
-    val colors = if ((settings?.wallpaper ?: dynamicColor) && Build.VERSION.SDK_INT >= 31) {
+    val colors = if (settings.wallpaper && Build.VERSION.SDK_INT >= 31) {
         if (dark) dynamicDarkColorScheme(LocalContext.current) else dynamicLightColorScheme(LocalContext.current)
-    } else if (settings == null || settings.palette == ThemePalette.FOREST) base
+    } else if (settings.palette == ThemePalette.FOREST) base
     else {
         val seed = settings.seed
         val black = 0xFF000000.toInt()
@@ -37,7 +37,13 @@ fun ShiYinTheme(
         val primary = accessibleAccent(seed, dark)
         val container = blendColor(seed, if (dark) black else white, if (dark) .48f else .84f)
         val foreground = if (colorContrast(primary, white) >= 4.5) white else black
-        val containerText = if (colorContrast(container, white) >= 4.5) white else black
+        val containerText = when {
+            colorContrast(container, white) >= 4.5 -> white
+            settings.palette == ThemePalette.OCEAN -> 0xFF173F78.toInt()
+            else -> black
+        }
+        val pageColor = if (!dark && settings.palette == ThemePalette.OCEAN) Color.White
+            else Color(blendColor(seed, if (dark) black else white, if (dark) .94f else .97f))
         base.copy(
             primary = Color(primary), onPrimary = Color(foreground),
             primaryContainer = Color(container), onPrimaryContainer = Color(containerText),
@@ -46,8 +52,7 @@ fun ShiYinTheme(
             onSecondaryContainer = Color(containerText),
             tertiary = Color(primary), onTertiary = Color(foreground),
             tertiaryContainer = Color(container), onTertiaryContainer = Color(containerText),
-            background = Color(blendColor(seed, if (dark) black else white, if (dark) .94f else .97f)),
-            surface = Color(blendColor(seed, if (dark) black else white, if (dark) .94f else .97f)),
+            background = pageColor, surface = pageColor,
             onBackground = Color(if (dark) 0xFFF0F0F0 else 0xFF191919),
             onSurface = Color(if (dark) 0xFFF0F0F0 else 0xFF191919),
             onSurfaceVariant = Color(if (dark) 0xFFD0D0D0 else 0xFF484848),

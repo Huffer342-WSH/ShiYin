@@ -202,10 +202,10 @@ private fun PlaybackDetails(state: PlaybackUi, onToggle: () -> Unit, onPrevious:
         Text(state.artist, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (state.sleepRemaining > 0) TextButton(onClick = onSleep) {
             Icon(Icons.Rounded.Bedtime, null, Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp)); Text(durationText(state.sleepRemaining))
+            Spacer(Modifier.width(6.dp)); Text(durationText(state.sleepRemaining), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (state.alarmRemaining > 0) Text("闹钟 · ${durationText(state.alarmRemaining)}",
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Slider(value = dragging ?: state.position.toFloat().coerceIn(0f, state.duration.coerceAtLeast(1).toFloat()),
             onValueChange = { dragging = it }, onValueChangeFinished = { dragging?.let { onSeek(it.toLong()) }; dragging = null },
             valueRange = 0f..state.duration.coerceAtLeast(1).toFloat(), enabled = state.duration > 0,
@@ -218,16 +218,16 @@ private fun PlaybackDetails(state: PlaybackUi, onToggle: () -> Unit, onPrevious:
             modifier = Modifier.fillMaxWidth().height(56.dp).testTag("playback_seek").semantics { contentDescription = "播放进度" })
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(durationText(dragging?.toLong() ?: state.position), style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary, modifier = Modifier.testTag("seek_time"))
-            Text(durationText(state.duration), style = MaterialTheme.typography.labelMedium)
+                color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.testTag("seek_time"))
+            Text(durationText(state.duration), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically) {
             IconToggleButton(state.shuffle, { onShuffle() }, enabled = !state.alarm) { Icon(Icons.Rounded.Shuffle, "随机播放") }
             ActionIcon(Icons.Rounded.SkipPrevious, "上一首", onPrevious, !state.alarm)
-            FilledIconButton(onToggle, Modifier.size(64.dp)) {
+            FilledIconButton(onToggle, Modifier.size(52.dp)) {
                 Icon(if (state.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    if (state.playing) "暂停播放" else "继续播放", Modifier.size(38.dp))
+                    if (state.playing) "暂停播放" else "继续播放", Modifier.size(30.dp))
             }
             ActionIcon(Icons.Rounded.SkipNext, "下一首", onNext, !state.alarm)
             IconToggleButton(state.repeat != 0, { onRepeat() }, enabled = !state.alarm) {

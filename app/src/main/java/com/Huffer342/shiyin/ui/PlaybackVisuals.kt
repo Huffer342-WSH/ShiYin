@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.Huffer342.shiyin.*
 import kotlinx.coroutines.*
@@ -111,7 +112,7 @@ fun PlaybackVisuals(state: PlaybackUi, modifier: Modifier = Modifier) {
                     }
                 }
                 else -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    TextButton(onClick = { importTarget = state.uri; picker.launch(arrayOf("*/*")) }) { Text("导入 LRC 歌词") }
+                    TextButton(onClick = { importTarget = state.uri; picker.launch(arrayOf("*/*")) }) { Text("导入 LRC 歌词", color = MaterialTheme.colorScheme.onSurface) }
                     val current = lyrics.indexOfLast { it.timeMs <= state.position }
                     Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -119,7 +120,7 @@ fun PlaybackVisuals(state: PlaybackUi, modifier: Modifier = Modifier) {
                         else {
                             if (lyricError.isNotEmpty()) Text(lyricError, color = MaterialTheme.colorScheme.error)
                             for (index in (current - 1).coerceAtLeast(0)..(current + 2).coerceAtMost(lyrics.lastIndex)) {
-                                Text(lyrics[index].text, color = if (index == current) MaterialTheme.colorScheme.primary
+                                Text(lyrics[index].text, color = if (index == current) MaterialTheme.colorScheme.onSurface
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = if (index == current) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyMedium)
                             }
@@ -131,7 +132,9 @@ fun PlaybackVisuals(state: PlaybackUi, modifier: Modifier = Modifier) {
         Row(horizontalArrangement = Arrangement.Center) {
             listOf("封面", "波形", "歌词").forEachIndexed { index, label ->
                 TextButton(onClick = { scope.launch { pager.animateScrollToPage(index) } }) {
-                    Text(label, color = if (pager.currentPage == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    val selected = pager.currentPage == index
+                    Text(label, color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
                 }
             }
         }

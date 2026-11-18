@@ -11,9 +11,9 @@
 - 持久播放列表与临时队列分开。列表可新建、重命名、多选管理歌曲、上移/下移、删除；删除列表不删除文件。
 - 目录页管理监控根目录。详情用“浏览 / 全部音频”切换层级视图和递归集合；长按进入多选，支持当前视图全选、长按滑选与边缘滚动，批量添加到指定或新建播放列表。子目录返回逐级退出，多选时先取消选择。移除目录只停止监控；授权失败显示在对应目录上。
 - 闹钟编辑使用时间/日期选择器、重复规则、单次时长上限、淡入与试听。新建默认淡入 15 秒，旧记录默认不淡入。保存失败保留编辑内容，放弃修改前确认。
-- 主题支持四套预设、自定义主色和系统/浅色/深色模式，Android 12 以上可选壁纸动态配色。颜色输入校验格式，主色文字对比度经过计算。
+- 默认浅色主题使用白色页面，海蓝色（`#2984F0`）用于选中态和容器配色，闹钟日期和播放时间使用中性色，封面、波形和歌词标签通过字重区分选中状态。进度条和开关沿用主题色，深色模式使用暗蓝背景与浅色文字。启动图标为白底、海蓝钟环与深蓝音符，见 [SVG 源图](shiyin-icon.svg)。主题支持四套预设、自定义主色和系统/浅色/深色模式，Android 12 以上可选壁纸动态配色。颜色输入校验格式，主色文字对比度经过计算。
 
-手机使用底部导航，宽窗口使用侧边导航。点击区域至少 48dp，重复规则整行至少 56dp。列表、表单和选择面板可滚动；键盘与系统栏由 Scaffold/insets 处理。低高度窗口的时间输入使用横向紧凑布局，字段和操作按钮位于键盘上方。
+手机使用底部导航，宽窗口使用侧边导航。播放列表、目录与闹钟的新增按钮为 48dp，完整播放页的播放按钮为 52dp。点击区域至少 48dp，重复规则整行至少 56dp。列表、表单和选择面板可滚动；键盘与系统栏由 Scaffold/insets 处理。低高度窗口的时间输入使用横向紧凑布局，字段和操作按钮位于键盘上方。
 
 ## 后台运行入口
 
@@ -82,37 +82,6 @@ adb -s emulator-5554 shell am broadcast -a android.intent.action.MEDIA_SCANNER_S
 广播成功仅代表请求已发出；须在时音中扫描并检查曲目、时长与播放进度。素材为低音量测试信号，仍应先确认系统音量再试听。本次模拟器对 WAV 的 RIFF 元数据未显示中文标题，列表使用 dawn-chords 和“未知艺术家”；MP3、FLAC 显示内嵌标题和艺术家。
 
 
-## 本次目录与导航验证
+## 验证记录与截图
 
-- 四个主栏目支持点击和左右滑动；`NavigationUiTest` 检查滑到闹钟、滑回目录和返回歌曲后保留搜索。
-- `FolderBrowserUiTest` 验证逐层浏览、本层全选、递归全选、长按滑选、取消单项和批量添加的实际歌曲集合。
-- 长按滑选期间禁用普通触摸滚动，避免滚动手势中断选择；边缘滚动由滑选处理。
-- API 37 模拟器相关 8 项 UI 测试分别通过。原有 29 项单元测试、Debug 构建与 Lint 检查通过。
-- 实际 SAF 目录中新增 `AAC/dawn-aac.m4a` 后歌曲集合自动更新为 4 首；进入 AAC 子目录仅显示该文件。播放页识别标题与 45 秒时长，观察到进度推进至 17 秒后暂停。
-- 本轮未重新验证 Android 15 真机声音、后台闹钟与耳机路由；没有清空应用数据。
-
-## 之前的验证
-
-- [PlayerFeaturesTest](../app/src/test/java/com/Huffer342/shiyin/PlayerFeaturesTest.kt)：播放列表增删排序/存储、URI 限制、目录记录、睡眠截止、淡入曲线、旧任务兼容、颜色格式和对比度。
-- [LibraryUiTest](../app/src/androidTest/java/com/Huffer342/shiyin/LibraryUiTest.kt)：歌曲多选、无效自定义颜色拦截与有效颜色应用。
-- [NavigationUiTest](../app/src/androidTest/java/com/Huffer342/shiyin/NavigationUiTest.kt)：新的主导航、搜索状态和返回。
-- [ScheduleEditorUiTest](../app/src/androidTest/java/com/Huffer342/shiyin/ScheduleEditorUiTest.kt)：输入校验、退出确认和状态恢复。
-- [PlaybackIntegrationTest](../app/src/androidTest/java/com/Huffer342/shiyin/PlaybackIntegrationTest.kt)：追加队列不暂停、一分钟睡眠定时及取消、5 秒淡入、30 秒试听停止和后台闹钟触发。
-
-2026-11-16 本轮记录：
-
-- Debug/Release 构建、测试 APK 和 Lint 通过；29 项单元测试通过，Lint 0 错误、29 项警告。
-- API 37 模拟器全量设备测试 `OK (8 tests)`，约 201 秒；最终交互复跑记录见开发指南。
-- 指定 `Music/ShiYin` 后，在子目录添加临时文件，前台自动从 3 首更新到 4 首；删除后自动回到 3 首，没有点击刷新。
-- 撤销 READ_MEDIA_AUDIO 后重新打开，持久目录授权仍能扫描和启动播放；测试后恢复原有媒体权限。
-- 当前队列保存为 `Demo` 播放列表，包含三首测试音频；检查了列表内容、主题即时切换，恢复原有森林配色。
-- 临时文件和闹钟已清理。真实耳机声音、Android 15 锁屏/Doze、厂商后台限制和目录授权被系统撤销后的现场表现仍待真机验收。
-
-模拟器 GPU 渲染曾发生 signal 11，当前使用软件渲染，未清空 AVD：
-
-```sh
-/home/wushenhui/Android/Sdk/emulator/emulator -avd Medium_Phone_API_37.0 -gpu swiftshader -no-snapshot-load -no-snapshot-save
-```
-
-当前截图：[歌曲页](screenshots/library-v2.png) · [播放列表](screenshots/playlist-v2.png) · [主题](screenshots/theme-v2.png)。
-旧的 library.png、player.png、editor-dark.png 为上一轮 UI 快照，不代表当前布局。执行命令与更多验收项目见 [开发指南](开发指南.md)。
+目录扫描、导航、播放和主题的历史测试结果及截图见[验证记录](验证记录.md#目录与导航验证)。

@@ -1,0 +1,5 @@
+<!-- API 24–25 launcher mipmaps share one scalable drawable. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="ReferenceType">
+    <item name="ic_launcher" type="mipmap">@drawable/ic_launcher_legacy</item>
+    <item name="ic_launcher_round" type="mipmap">@drawable/ic_launcher_legacy</item>
+</resources>

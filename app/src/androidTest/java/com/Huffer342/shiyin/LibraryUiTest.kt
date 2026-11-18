@@ -42,7 +42,7 @@ class LibraryUiTest {
         compose.onNodeWithTag("theme_hex").performTextReplacement("#GG0000")
         compose.onNodeWithText("保存").performClick()
         compose.onNodeWithText("请输入六位十六进制颜色").assertExists()
-        compose.runOnIdle { assertEquals(ThemePalette.FOREST, result.palette) }
+        compose.runOnIdle { assertEquals(ThemePalette.OCEAN, result.palette) }
         compose.onNodeWithTag("theme_hex").performTextReplacement("#336699")
         compose.onNodeWithText("保存").performClick()
         compose.runOnIdle {

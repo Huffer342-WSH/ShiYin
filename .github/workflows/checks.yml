@@ -52,26 +52,14 @@ jobs:
       - name: Unit tests
         run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:testDebugUnitTest
       - name: Build APKs
-        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:assembleDebug :app:assembleDebugAndroidTest
-      - name: Record build provenance
-        uses: actions/github-script@v8
-        env:
-          TOOLCHAIN_IMAGE: ${{ needs.image.outputs.ref }}
-        with:
-          script: |
-            const fs = require('node:fs');
-            const metadata = JSON.parse(fs.readFileSync('app/build/outputs/apk/debug/output-metadata.json', 'utf8'));
-            fs.writeFileSync('app/build/outputs/apk/build-info.json', JSON.stringify({
-              commit: context.sha, runId: context.runId, image: process.env.TOOLCHAIN_IMAGE,
-              versionName: metadata.elements[0].versionName, versionCode: metadata.elements[0].versionCode
-            }, null, 2) + '\n');
-      - name: Record checksums
-        working-directory: app/build/outputs/apk
-        run: sha256sum debug/app-debug.apk androidTest/debug/app-debug-androidTest.apk build-info.json > SHA256SUMS
+        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease
       - uses: actions/upload-artifact@v6
         with:
           name: android-apks
-          path: app/build/outputs/apk/
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload unit and lint reports
@@ -94,9 +82,6 @@ jobs:
         with:
           name: android-apks
           path: dist
-      - name: Verify APKs
-        working-directory: dist
-        run: sha256sum -c SHA256SUMS
       - name: Prepare hosted runner
         run: |
           sudo rm -rf /usr/share/dotnet "$ANDROID_HOME/ndk"

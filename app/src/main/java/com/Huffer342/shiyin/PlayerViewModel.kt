@@ -72,10 +72,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var busy by mutableStateOf(false); private set
     var connected by mutableStateOf(false); private set
     var loaded by mutableStateOf(false); private set
+    private val defaultTheme = ThemeSettings()
     var theme by mutableStateOf(ThemeSettings(
-        palette = runCatching { ThemePalette.valueOf(preferences.getString("theme_palette", "FOREST")!!) }.getOrDefault(ThemePalette.FOREST),
+        palette = runCatching { ThemePalette.valueOf(preferences.getString("theme_palette", defaultTheme.palette.name)!!) }.getOrDefault(defaultTheme.palette),
         mode = runCatching { ThemeMode.valueOf(preferences.getString("theme_mode", "SYSTEM")!!) }.getOrDefault(ThemeMode.SYSTEM),
-        customHex = preferences.getString("theme_custom", "#286558")!!.takeIf { parseThemeColor(it) != null } ?: "#286558",
+        customHex = preferences.getString("theme_custom", defaultTheme.customHex)!!.takeIf { parseThemeColor(it) != null } ?: defaultTheme.customHex,
         wallpaper = preferences.getBoolean("dynamic_color", false)
     )); private set
 

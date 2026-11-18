@@ -89,7 +89,7 @@ fun ScheduleListScreen(
                             modifier = Modifier.semantics { contentDescription = "${schedule.title}，启用定时" })
                     }
                     Text(ruleText(schedule), style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RecordArtwork(schedule.title, Modifier.size(40.dp))

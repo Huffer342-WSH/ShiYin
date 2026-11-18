@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="18 18 72 72" role="img" aria-labelledby="title">
+  <title id="title">时音 · 音符与钟面</title>
+  <rect x="18" y="18" width="72" height="72" rx="16" fill="#FFFFFF"/>
+  <g id="dial">
+    <path d="M54 29 A25 25 0 1 0 79 54" fill="none" stroke="#2984F0" stroke-width="5" stroke-linecap="round"/>
+    <path d="M72 35 a3.5 3.5 0 1 1 0 7 a3.5 3.5 0 1 1 0 -7Z" fill="#205DB0"/>
+  </g>
+  <path id="note" d="M54 59 V40 Q54 37 57 38 L68 44 Q70 45 69 48 Q68 50 65 49 L59 46 V62 C59 67 54 70 49 70 C44 70 41 67 42 63 C43 59 49 56 54 59Z" fill="#205DB0"/>
+</svg>

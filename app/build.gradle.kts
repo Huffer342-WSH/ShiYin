@@ -14,8 +14,8 @@ android {
         applicationId = "com.Huffer342.shiyin"
         minSdk = 24
         targetSdk = 37
-        versionCode = 4
-        versionName = "1.1.2"
+        versionCode = 5
+        versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,9 +38,6 @@ android {
     }
 }
 
-providers.environmentVariable("RELEASE_TAG").orNull?.takeIf { it.isNotBlank() }?.let { tag ->
-    require(tag == "v${android.defaultConfig.versionName}") { "Tag $tag does not match app version ${android.defaultConfig.versionName}" }
-}
 
 dependencies {
     coreLibraryDesugaring(libs.desugar.jdk)

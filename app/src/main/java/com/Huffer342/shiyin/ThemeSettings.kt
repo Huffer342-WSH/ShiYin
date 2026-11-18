@@ -4,16 +4,16 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 
 enum class ThemePalette(val label: String, val seed: Int) {
-    FOREST("森林", 0xFF286558.toInt()), OCEAN("海蓝", 0xFF275E9B.toInt()),
+    FOREST("森林", 0xFF286558.toInt()), OCEAN("海蓝", 0xFF2984F0.toInt()),
     VIOLET("暮紫", 0xFF72569A.toInt()), AMBER("暖橙", 0xFFA34F25.toInt()),
-    CUSTOM("自定义", 0xFF286558.toInt())
+    CUSTOM("自定义", 0xFF2984F0.toInt())
 }
 enum class ThemeMode(val label: String) { SYSTEM("跟随系统"), LIGHT("浅色"), DARK("深色") }
 
 data class ThemeSettings(
-    val palette: ThemePalette = ThemePalette.FOREST,
+    val palette: ThemePalette = ThemePalette.OCEAN,
     val mode: ThemeMode = ThemeMode.SYSTEM,
-    val customHex: String = "#286558",
+    val customHex: String = "#2984F0",
     val wallpaper: Boolean = false
 ) {
     init { require(parseThemeColor(customHex) != null) { "请输入 #RRGGBB 格式的颜色" } }

@@ -297,9 +297,9 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                         },
                         floatingActionButton = {
                             when {
-                                primary && tab == 3 -> FloatingActionButton({ newAlarm() }, Modifier.testTag("add_schedule")) { Icon(Icons.Rounded.Add, "添加闹钟") }
-                                primary && tab == 1 && currentPlaylist == null -> FloatingActionButton({ nameAction = "new" }) { Icon(Icons.Rounded.Add, "新建播放列表") }
-                                primary && tab == 2 && currentFolder == null -> FloatingActionButton({ directoryPicker.launch(null) }) { Icon(Icons.Rounded.CreateNewFolder, "选择目录") }
+                                primary && tab == 3 -> FloatingActionButton({ newAlarm() }, Modifier.size(48.dp).testTag("add_schedule")) { Icon(Icons.Rounded.Add, "添加闹钟") }
+                                primary && tab == 1 && currentPlaylist == null -> FloatingActionButton({ nameAction = "new" }, Modifier.size(48.dp)) { Icon(Icons.Rounded.Add, "新建播放列表") }
+                                primary && tab == 2 && currentFolder == null -> FloatingActionButton({ directoryPicker.launch(null) }, Modifier.size(48.dp)) { Icon(Icons.Rounded.CreateNewFolder, "选择目录") }
                             }
                         }) { padding ->
                         when (page) {
