@@ -55,6 +55,6 @@ bash docker/android/run.sh :app:assembleDebugAndroidTest
 
 ## CI 与限制
 
-本次只提供项目内可用的构建容器，现有 GitHub Workflow 没有切换，也未发布镜像。未来可以将同一 Dockerfile 构建后推送 GHCR，让 build/JVM 测试使用固定 digest；模拟器 job 继续使用宿主 KVM 并下载同次 APK。
+Build Image workflow 已将镜像发布至本仓库关联的 `ghcr.io/huffer342-wsh/shiyin-build` 包；[image.txt](image.txt) 固定 CI 使用的 digest。App CI 在该镜像内执行 Lint、单测和构建，模拟器 job 使用宿主 KVM 并下载同次 APK。镜像更新与跨运行 APK 复用见[构建与发布](../../docs/构建与发布.md)。本地脚本仍可自行构建本地镜像，不强制依赖私有 GHCR 登录。
 
 当前只承诺 linux/amd64，未验证 ARM Mac 的跨架构模拟性能、Docker Desktop 或 Podman。构建过程中采用磁盘上的源码快照，IDE 未保存内容不会进入构建；运行开始后修改源码需在下一次运行验证。
