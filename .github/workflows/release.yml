@@ -26,7 +26,11 @@ jobs:
         run: |
           [[ "$GITHUB_REF_NAME" =~ ^(pre|release)-v((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$ ]]
           printf 'version=%s\n' "${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
-          git merge-base --is-ancestor HEAD origin/main
+          if [[ "$GITHUB_REF_NAME" == pre-v* ]] && git merge-base --is-ancestor HEAD origin/dev; then
+            echo "Pre-release commit verified on dev"
+          else
+            git merge-base --is-ancestor HEAD origin/main
+          fi
           printf 'sha=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - id: ci
         uses: actions/github-script@v8
@@ -83,9 +87,7 @@ jobs:
           key=$(mktemp)
           trap 'rm -f "$key"' EXIT
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$key"
-          signer=$(printf '%s\n' "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          "$signer" sign --ks "$key" --ks-pass env:STORE_PASSWORD --out "ShiYin-$VERSION-release.apk" dist/release/app-release-unsigned.apk
-          "$signer" verify "ShiYin-$VERSION-release.apk"
+          bash .github/scripts/sign-release.sh dist/release/app-release-unsigned.apk "$key" "ShiYin-$VERSION-release.apk"
           cp dist/debug/app-debug.apk "ShiYin-$VERSION-debug.apk"
       - name: Publish APKs
         env:

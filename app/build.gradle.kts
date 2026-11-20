@@ -14,8 +14,8 @@ android {
         applicationId = "com.Huffer342.shiyin"
         minSdk = 24
         targetSdk = 37
-        versionCode = 7
-        versionName = "0.2.1"
+        versionCode = 8
+        versionName = "0.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -36,13 +36,16 @@ android {
     }
 }
 
-val guardDebugApk = configurations.create("guardDebugApk") {
+fun guardApkConfiguration(buildType: String) = configurations.create("guard${buildType.replaceFirstChar { it.uppercase() }}Apk") {
     isCanBeConsumed = false
     isCanBeResolved = true
     attributes {
-        attribute(Category.CATEGORY_ATTRIBUTE, objects.named("shiyin-guard-apk"))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named("shiyin-guard-$buildType-apk"))
     }
 }
+
+val guardDebugApk = guardApkConfiguration("debug")
+val guardReleaseApk = guardApkConfiguration("release")
 
 abstract class PrepareGuardAssetTask : DefaultTask() {
     @get:InputFiles
@@ -66,11 +69,11 @@ abstract class PrepareGuardAssetTask : DefaultTask() {
 }
 
 androidComponents {
-    onVariants(selector().withBuildType("debug")) { variant ->
+    onVariants { variant ->
         val prepareGuardAsset = tasks.register<PrepareGuardAssetTask>(
             "prepare${variant.name.replaceFirstChar { it.uppercase() }}GuardAsset"
         ) {
-            apkDirs.from(guardDebugApk)
+            apkDirs.from(if (variant.buildType == "release") guardReleaseApk else guardDebugApk)
         }
         variant.sources.assets?.addGeneratedSourceDirectory(
             prepareGuardAsset,
@@ -82,6 +85,7 @@ androidComponents {
 
 dependencies {
     guardDebugApk(project(":guard"))
+    guardReleaseApk(project(":guard"))
     coreLibraryDesugaring(libs.desugar.jdk)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)

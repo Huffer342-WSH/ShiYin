@@ -23,14 +23,6 @@ android {
     }
 }
 
-val guardDebugApk = configurations.create("guardDebugApk") {
-    isCanBeConsumed = true
-    isCanBeResolved = false
-    attributes {
-        attribute(Category.CATEGORY_ATTRIBUTE, objects.named("shiyin-guard-apk"))
-    }
-}
-
 abstract class StripTestOnlyManifestTask : DefaultTask() {
     @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)
@@ -60,8 +52,17 @@ androidComponents {
             )
             .toTransform(com.android.build.api.artifact.SingleArtifact.MERGED_MANIFEST)
 
-        val apkDir = variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK)
-        artifacts.add(guardDebugApk.name, apkDir)
+    }
+
+    onVariants { variant ->
+        val guardApk = configurations.create("guard${variant.name.replaceFirstChar { it.uppercase() }}Apk") {
+            isCanBeConsumed = true
+            isCanBeResolved = false
+            attributes {
+                attribute(Category.CATEGORY_ATTRIBUTE, objects.named("shiyin-guard-${variant.buildType}-apk"))
+            }
+        }
+        artifacts.add(guardApk.name, variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK))
     }
 }
 
