@@ -46,9 +46,12 @@ class ProbeActivity : Activity() {
         button("授权精确闹钟") {
             startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:$packageName")))
         }
+        button("打开本组件系统设置（开启自启动/关联启动）") {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+        }
         button("20 秒后播放 · 无等待服务") { schedule(false) }
         button("20 秒后播放 · 前台等待服务") { schedule(true) }
-        button("移除当前卡片 · 保留已启动的服务") {
+        button("完成初始化并隐藏守护卡片") {
             record(this, "self_remove_task")
             finishAndRemoveTask()
         }
@@ -99,7 +102,20 @@ class ProbeActivity : Activity() {
         val due = prefs.getLong("due", 0)
         status.text = "实验 targetSdk ${applicationInfo.targetSdkVersion}\n" +
             "精确闹钟：${alarms.canScheduleExactAlarms()}\n" +
-            if (due > 0) "本轮时间：${SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(due))}" else "没有预约"
+            (if (due > 0) "本轮时间：${SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(due))}" else "没有预约") +
+            "\n最近事件：\n" + recentEvents()
+    }
+
+    private fun recentEvents(): String {
+        val file = java.io.File(filesDir, "events.jsonl")
+        if (!file.exists()) return "（无）"
+        val format = SimpleDateFormat("HH:mm:ss", Locale.US)
+        return file.readLines().takeLast(12).joinToString("\n") { line ->
+            runCatching {
+                val json = org.json.JSONObject(line)
+                "${format.format(Date(json.getLong("wall")))} ${json.getString("event")} ${json.optString("detail").take(60)}"
+            }.getOrDefault(line.take(80))
+        }
     }
 
     override fun onResume() { super.onResume(); refresh(); record(this, "activity_resume") }

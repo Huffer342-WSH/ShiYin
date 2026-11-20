@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.SystemClock
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -69,6 +70,7 @@ class PlaybackService : MediaSessionService() {
         }
     }
     private var generation = 0
+    private var activeAlarmKey: String? = null
     private var preferredDeviceId: Int? = null
     private val devices = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
@@ -84,6 +86,25 @@ class PlaybackService : MediaSessionService() {
         }
     }
     private val stopTimer = Runnable { finishPlayback() }
+    private var focusRetryAttempts = 0
+    private val focusRetry: Runnable = object : Runnable {
+        override fun run() {
+            if (!alarmMode || alarmFocus) return
+            if (requestAlarmFocus()) return
+            if (++focusRetryAttempts < 15) {
+                handler.postDelayed(this, 200)
+            } else {
+                Log.w("ShiYinAlarm", "Alarm audio focus denied after retries; continuing alarm playback")
+            }
+        }
+    }
+
+    private fun scheduleFocusRetry() {
+        if (!alarmMode || alarmFocus || focusRetryAttempts >= 15) return
+        handler.removeCallbacks(focusRetry)
+        handler.postDelayed(focusRetry, 200)
+    }
+
     private var startupWake: android.os.PowerManager.WakeLock? = null
     private val preparationTimeout = Runnable {
         reportFailure("音频准备超时，请检查文件后重试")
@@ -142,10 +163,12 @@ class PlaybackService : MediaSessionService() {
                     if (playWhenReady) {
                         if (deadline > 0 && SystemClock.elapsedRealtime() >= deadline) finishPlayback()
                         else if (!alarmFocus && !requestAlarmFocus()) {
-                            pause()
-                            AppStore.notice(this@PlaybackService, "无法取得闹钟音频焦点，请稍后重试")
+                            scheduleFocusRetry()
                         }
-                    } else releaseAlarmFocus()
+                    } else {
+                        handler.removeCallbacks(focusRetry)
+                        releaseAlarmFocus()
+                    }
                 }
             })
         }
@@ -224,10 +247,17 @@ class PlaybackService : MediaSessionService() {
         if (intent?.action != ACTION_ALARM && intent?.action != ACTION_PREVIEW) {
             return super.onStartCommand(intent, flags, startId)
         }
+        val alarmKey = if (intent.action == ACTION_ALARM) {
+            "${intent.getStringExtra("id") ?: ""}:${intent.getLongExtra("expectedAt", 0)}"
+        } else null
+        if (alarmKey != null && alarmKey == activeAlarmKey) {
+            return START_NOT_STICKY
+        }
         startForeground(NOTIFICATION_ID, NotificationCompat.Builder(this, startupChannel())
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle("时音").setContentText("正在准备定时音频")
             .setContentIntent(openApp()).setSilent(true).setOngoing(true).build())
+        activeAlarmKey = alarmKey
         setPreparingAlarm(true)
         val request = ++generation
         scope.launch {
@@ -247,12 +277,14 @@ class PlaybackService : MediaSessionService() {
                 }
                 if (request != generation) return@launch
                 if (schedule == null) {
+                    activeAlarmKey = null
                     if (!player.isPlaying) finishPlayback() else setPreparingAlarm(false)
                     return@launch
                 }
                 startAlarm(schedule, intent.action == ACTION_PREVIEW)
             } catch (e: Exception) {
                 if (request == generation) {
+                    activeAlarmKey = null
                     reportFailure(e.message ?: "无法启动定时播放")
                     finishPlayback()
                 }
@@ -263,6 +295,8 @@ class PlaybackService : MediaSessionService() {
 
     private fun startAlarm(schedule: Schedule, preview: Boolean) {
         check(MusicLibrary.canRead(this, schedule.uri)) { "音频不可访问，请重新授权或选择目录" }
+        handler.removeCallbacks(focusRetry)
+        focusRetryAttempts = 0
         player.pause()
         releaseAlarmFocus()
         handler.removeCallbacks(stopTimer)
@@ -279,9 +313,11 @@ class PlaybackService : MediaSessionService() {
         val duration = if (preview) 30_000L else schedule.stopMinutes * 60_000L
         deadline = SystemClock.elapsedRealtime() + duration
         publishTimers()
-        check(requestAlarmFocus()) { "闹钟音频焦点被拒绝，未开始播放" }
         AlarmPresentation.clear(this)
         if (!preview) AlarmPresentation.show(this, schedule.title, deadline)
+        if (!requestAlarmFocus()) {
+            scheduleFocusRetry()
+        }
         player.shuffleModeEnabled = false
         player.repeatMode = Player.REPEAT_MODE_ONE
         player.setMediaItem(MediaItem.Builder().setMediaId(schedule.uri).setUri(schedule.uri)
@@ -295,9 +331,12 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun useManualMode() {
+        activeAlarmKey = null
         AlarmPresentation.clear(this)
         setPreparingAlarm(false)
         ++generation
+        handler.removeCallbacks(focusRetry)
+        focusRetryAttempts = 0
         handler.removeCallbacks(stopTimer)
         player.pause()
         releaseAlarmFocus()
@@ -353,13 +392,15 @@ class PlaybackService : MediaSessionService() {
                     .setUsage(android.media.AudioAttributes.USAGE_ALARM)
                     .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build())
                 .setOnAudioFocusChangeListener(focusListener, handler).build()
-            focusRequest = request
-            audioManager.requestAudioFocus(request)
+            val code = audioManager.requestAudioFocus(request)
+            focusRequest = if (code == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) request else null
+            code
         } else {
             @Suppress("DEPRECATION")
             audioManager.requestAudioFocus(focusListener, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN)
         }
         alarmFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        Log.i("ShiYinAlarm", "requestAlarmFocus result=$result granted=$alarmFocus")
         return alarmFocus
     }
 
@@ -374,9 +415,12 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun finishPlayback() {
+        activeAlarmKey = null
         AlarmPresentation.clear(this)
         setPreparingAlarm(false)
         ++generation
+        handler.removeCallbacks(focusRetry)
+        focusRetryAttempts = 0
         handler.removeCallbacks(stopTimer)
         player.pause()
         player.stop()

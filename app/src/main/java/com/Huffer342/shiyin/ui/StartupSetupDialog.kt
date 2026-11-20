@@ -19,11 +19,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.Huffer342.shiyin.CompanionGuard
 import com.Huffer342.shiyin.MusicLibrary
 import com.Huffer342.shiyin.ScheduleScheduler
 
 @Composable
-fun StartupSetupDialog(activity: ComponentActivity, onPermissions: () -> Unit, onDismiss: () -> Unit) {
+fun StartupSetupDialog(
+    activity: ComponentActivity,
+    onPermissions: () -> Unit,
+    onOpenGuard: () -> Unit,
+    onDismiss: () -> Unit
+) {
     var revision by remember { mutableIntStateOf(0) }
     var error by remember { mutableStateOf("") }
     val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -46,6 +52,7 @@ fun StartupSetupDialog(activity: ComponentActivity, onPermissions: () -> Unit, o
     val fullscreen = remember(revision) {
         Build.VERSION.SDK_INT < 34 || activity.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
     }
+    val guardStatus = remember(revision) { CompanionGuard.queryStatus(activity) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("权限与后台设置") },
         text = {
             Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
@@ -65,10 +72,14 @@ fun StartupSetupDialog(activity: ComponentActivity, onPermissions: () -> Unit, o
                 OutlinedButton(onClick = {
                     if (Build.VERSION.SDK_INT >= 34) open(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
                 }, enabled = !fullscreen) { Text(if (fullscreen) "全屏通知已允许" else "允许全屏闹钟") }
-                Text("防止误关：在最近任务中锁定本应用卡片，避免上划或一键清理。推荐在底部栏目栏向上滑动进入后台，由应用准备好闹钟后主动移除卡片。")
-                Text("vivo：在应用信息 → 查看所有权限中允许自启动、锁屏显示；在后台耗电管理中允许后台运行。不同系统入口可能不同，应用无法代替你开启或可靠读取这些开关。")
+                Text("在 vivo OriginOS 等国产系统上，若从系统最近任务手动上划单应用卡片，系统会强行停止该应用并清空 AlarmManager 闹钟。")
+                Text("推荐安装可选的「闹钟守护包」（无桌面图标、无常驻卡片）：安装并完成守护授权后，即使在最近任务中划掉卡片或点击「清除全部」，闹钟仍可准时唤醒。")
+                OutlinedButton(onClick = onOpenGuard) {
+                    Text(if (guardStatus.ready) "闹钟守护包：已就绪（点击管理）" else if (guardStatus.installed) "闹钟守护包：待完成设置" else "安装可选「闹钟守护包」")
+                }
+                Text("如果不安装守护包，请使用单应用保活方式：\n1. 给最近任务卡片【加锁】后按 Home 退回桌面（仅防「清除全部」，切勿手动上划）。\n2. 或在应用底部导航栏向上滑动，由应用主动收起卡片。")
+                Text("vivo 权限：在应用信息 → 查看所有权限中开启“自启动”“锁屏显示”；在电池 → 后台耗电管理中选择“允许后台高耗电”。")
                 OutlinedButton(onClick = { open(Settings.ACTION_APPLICATION_DETAILS_SETTINGS) }) { Text("打开应用设置") }
-                Text("已使用后台运行且仍有待执行闹钟时，开机解锁后会尝试恢复等待服务。系统回收后也会请求重建；强行停止或厂商清理仍可能阻止恢复，需要重新打开应用。")
                 if (error.isNotEmpty()) Text(error, color = MaterialTheme.colorScheme.error)
             }
         },

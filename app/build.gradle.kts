@@ -38,8 +38,52 @@ android {
     }
 }
 
+val guardDebugApk = configurations.create("guardDebugApk") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named("shiyin-guard-apk"))
+    }
+}
+
+abstract class PrepareGuardAssetTask : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val apkDirs: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copyApk() {
+        val out = outputDir.get().asFile
+        out.deleteRecursively()
+        out.mkdirs()
+        val apk = apkDirs.asFileTree.files
+            .filter { it.isFile && it.extension == "apk" }
+            .minByOrNull { it.name }
+            ?: error("Guard APK not found in ${apkDirs.files}")
+        apk.copyTo(out.resolve("shiyin-guard.apk"), overwrite = true)
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        val prepareGuardAsset = tasks.register<PrepareGuardAssetTask>(
+            "prepare${variant.name.replaceFirstChar { it.uppercase() }}GuardAsset"
+        ) {
+            apkDirs.from(guardDebugApk)
+        }
+        variant.sources.assets?.addGeneratedSourceDirectory(
+            prepareGuardAsset,
+            PrepareGuardAssetTask::outputDir
+        )
+    }
+}
+
 
 dependencies {
+    guardDebugApk(project(":guard"))
     coreLibraryDesugaring(libs.desugar.jdk)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)

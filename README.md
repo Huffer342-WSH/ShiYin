@@ -33,4 +33,4 @@ vivo Android 15 真机上已有一次正式播放器关闭任务卡片后锁屏�
 | 追溯测试环境、覆盖范围与未验证事项 | [验证记录](docs/验证记录.md) |
 | 查看当前工作、排查状态与下一轮实验安排 | [工作记录](docs/工作记录/README.md) |
 
-AI 开发从 [AGENTS.md](AGENTS.md) 开始，再按任务读取相关文档。项目保持单 `app` 模块；页面使用 Compose / Material 3，播放使用 Media3，闹钟由 AlarmManager 调度。
+AI 开发从 [AGENTS.md](AGENTS.md) 开始，再按任务读取相关文档。主应用位于 `app` 模块，并附带可选独立守护模块 `guard`（见[项目说明](docs/项目说明.md#可选闹钟守护包)）；页面使用 Compose / Material 3，播放使用 Media3，闹钟由 AlarmManager 调度。

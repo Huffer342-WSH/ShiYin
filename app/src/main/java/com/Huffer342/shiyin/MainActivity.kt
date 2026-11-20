@@ -79,6 +79,8 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
     val helpPrefs = remember { activity.getSharedPreferences("shiyin", android.content.Context.MODE_PRIVATE) }
     var help by rememberSaveable { mutableStateOf(false) }
     var setup by rememberSaveable { mutableStateOf(false) }
+    var guardDialog by rememberSaveable { mutableStateOf(false) }
+    var guardFirstAlarmPrompt by rememberSaveable { mutableStateOf(false) }
     var countdownDialog by rememberSaveable { mutableStateOf(false) }
     var rootMenu by remember { mutableStateOf(false) }
     var closing by remember { mutableStateOf(false) }
@@ -214,6 +216,16 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
     val notificationsAllowed = remember(revision) {
         Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
+    val guardStatus = remember(revision) { CompanionGuard.queryStatus(activity) }
+
+    LaunchedEffect(primary, tab, help, setup, guardDialog, guardStatus.installed, model.loaded) {
+        if (model.loaded && primary && tab == 3 && !help && !setup && !guardDialog &&
+            !guardStatus.installed && !helpPrefs.getBoolean("guard_prompt_seen_v1", false)) {
+            helpPrefs.edit().putBoolean("guard_prompt_seen_v1", true).apply()
+            guardFirstAlarmPrompt = true
+            guardDialog = true
+        }
+    }
 
     BackgroundTransition({ if (closing) 1f else backgroundProgress }, closing) {
         when {
@@ -304,12 +316,15 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                         }) { padding ->
                         when (page) {
                             "settings" -> SettingsScreen(padding, settingsList, audioAllowed, exactAllowed, notificationsAllowed,
-                                model.calendarYears, model.busy, model.theme,
+                                guardStatus, model.calendarYears, model.busy, model.theme,
                                 { if (audioAllowed) settings() else audioPermission.launch(MusicLibrary.permission) },
                                 requestExact, {
                                     if (Build.VERSION.SDK_INT >= 33 && !notificationsAllowed) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     else settings()
-                                }, { setup = true }, model::updateCalendar, { page = "theme" }, { help = true })
+                                }, { setup = true }, {
+                                    guardFirstAlarmPrompt = false
+                                    guardDialog = true
+                                }, model::updateCalendar, { page = "theme" }, { help = true })
                             "theme" -> ThemeScreen(model.theme, padding, model::updateTheme)
                             else -> when {
                                 currentPlaylist != null -> PlaylistDetailScreen(currentPlaylist, padding,
@@ -357,10 +372,22 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
         }
         if (editorId != null || showPlayer) SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(12.dp))
     }
-    if (setup) StartupSetupDialog(activity, { model.scan(); revision++ }) {
+    if (setup) StartupSetupDialog(activity, { model.scan(); revision++ }, {
+        setup = false
+        guardFirstAlarmPrompt = false
+        guardDialog = true
+    }) {
         helpPrefs.edit().putBoolean("setup_seen_v1", true).apply()
         setup = false
         help = !helpPrefs.getBoolean("manual_seen_v1", false)
+    }
+    if (guardDialog) GuardSetupDialog(activity, guardFirstAlarmPrompt, {
+        revision++
+        model.syncGuard()
+    }) {
+        guardDialog = false
+        guardFirstAlarmPrompt = false
+        revision++
     }
     if (showQueue) QueueSheet(model.playback, { showQueue = false }, { model.selectQueue(it) },
         model::removeQueue, model::moveQueue, { showQueue = false; nameAction = "queue" })

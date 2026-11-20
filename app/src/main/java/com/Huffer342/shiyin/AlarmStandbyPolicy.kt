@@ -1,7 +1,7 @@
 package com.Huffer342.shiyin
 
-fun shouldRestoreStandby(requested: Boolean, schedules: List<Schedule>, now: Long): Boolean =
-    requested && schedules.any { it.enabled && it.nextAt > now }
+fun shouldRestoreStandby(schedules: List<Schedule>, now: Long): Boolean =
+    schedules.any { it.enabled && it.nextAt > now }
 
 /** Keep the delivery grace window so a due alarm is not mistaken for an obsolete one. */
 fun standbyNextAt(schedules: List<Schedule>, now: Long): Long? =

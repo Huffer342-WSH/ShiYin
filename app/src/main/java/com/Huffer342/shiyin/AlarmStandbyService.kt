@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.os.*
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -20,6 +21,7 @@ class AlarmStandbyService : Service() {
     private val preferences by lazy { getSharedPreferences("shiyin", MODE_PRIVATE) }
     private var refreshJob: Job? = null
     private var closing = false
+    private var mediaSession: android.media.session.MediaSession? = null
     private val changes = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == "schedules") refresh()
     }
@@ -27,23 +29,43 @@ class AlarmStandbyService : Service() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        Log.i(TAG, "onCreate pid=${Process.myPid()}")
+        mediaSession = android.media.session.MediaSession(this, "ShiYinStandby").apply {
+            setPlaybackState(
+                android.media.session.PlaybackState.Builder()
+                    .setState(android.media.session.PlaybackState.STATE_PAUSED, 0L, 0f)
+                    .setActions(android.media.session.PlaybackState.ACTION_PLAY or android.media.session.PlaybackState.ACTION_PAUSE)
+                    .build()
+            )
+            setMetadata(
+                android.media.MediaMetadata.Builder()
+                    .putString(android.media.MediaMetadata.METADATA_KEY_TITLE, "定时播放已就绪")
+                    .build()
+            )
+            isActive = true
+        }
         preferences.registerOnSharedPreferenceChangeListener(changes)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.i(TAG, "onStartCommand pid=${Process.myPid()} flags=$flags startId=$startId intentNull=${intent == null}")
         @Suppress("DEPRECATION")
         val reply = intent?.getParcelableExtra<ResultReceiver>("reply")
         try {
             if (Build.VERSION.SDK_INT >= 26) getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(NotificationChannel(CHANNEL, "闹钟后台等待", NotificationManager.IMPORTANCE_LOW))
             val notification = notification("正在检查闹钟")
-            if (Build.VERSION.SDK_INT >= 34) startForeground(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+            if (Build.VERSION.SDK_INT >= 34) startForeground(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+            else if (Build.VERSION.SDK_INT >= 29) startForeground(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
             else startForeground(ID, notification)
             closing = false
             scope.launch {
                 try {
+                    withContext(Dispatchers.IO) {
+                        ScheduleScheduler.reschedule(this@AlarmStandbyService)
+                    }
                     val schedules = snapshot()
                     check(ScheduleScheduler.canSchedule(this@AlarmStandbyService)) { "请先允许闹钟和提醒" }
                     check(schedules.none { it.enabled && it.nextAt <= 0 }) { "部分闹钟尚未注册，请返回闹钟页处理" }
@@ -52,6 +74,7 @@ class AlarmStandbyService : Service() {
                 } catch (error: Exception) {
                     if (error is CancellationException) throw error
                     val message = error.message ?: "无法启动闹钟后台等待"
+                    Log.w(TAG, "onStartCommand inner error: $message", error)
                     AppStore.notice(this@AlarmStandbyService, message)
                     reply?.send(1, Bundle().apply { putString("error", message) })
                     close()
@@ -59,12 +82,19 @@ class AlarmStandbyService : Service() {
             }
         } catch (error: Exception) {
             val message = error.message ?: "无法启动闹钟后台等待"
+            Log.w(TAG, "onStartCommand outer error: $message", error)
             AppStore.notice(this, message)
             reply?.send(1, Bundle().apply { putString("error", message) })
             close()
         }
         // System-managed restart only; this cannot override force-stop or vendor package suspension.
         return if (closing) START_NOT_STICKY else START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.i(TAG, "onTaskRemoved pid=${Process.myPid()}")
+        runCatching { ScheduleScheduler.reschedule(this, force = false) }
+        super.onTaskRemoved(rootIntent)
     }
 
     private suspend fun snapshot() = withContext(Dispatchers.IO) {
@@ -118,6 +148,11 @@ class AlarmStandbyService : Service() {
 
     override fun onDestroy() {
         if (instance === this) instance = null
+        mediaSession?.let {
+            it.isActive = false
+            it.release()
+        }
+        mediaSession = null
         preferences.unregisterOnSharedPreferenceChangeListener(changes)
         handler.removeCallbacksAndMessages(null)
         scope.cancel()
@@ -125,10 +160,14 @@ class AlarmStandbyService : Service() {
     }
 
     companion object {
+        private const val TAG = "ShiYinAlarm"
         private const val CHANNEL = "alarm_standby"
         private const val ID = 1004
         private var instance: AlarmStandbyService? = null
+        @Volatile
         private var playbackStarting = false
+
+        fun isPlaybackPreparing(): Boolean = playbackStarting
 
         // Called on the main thread, after promotion and before consuming a one-shot schedule.
         fun playbackPreparing(value: Boolean) {
@@ -136,10 +175,33 @@ class AlarmStandbyService : Service() {
             instance?.refresh()
         }
 
+        fun sync(context: Context, schedules: List<Schedule>) {
+            val app = context.applicationContext
+            val active = instance
+            if (active != null) {
+                active.refresh()
+                return
+            }
+            if (!shouldRestoreStandby(schedules, System.currentTimeMillis())) return
+            if (!ScheduleScheduler.canSchedule(app)) return
+            if (!NotificationManagerCompat.from(app).areNotificationsEnabled()) return
+            if (Build.VERSION.SDK_INT >= 26 &&
+                app.getSystemService(NotificationManager::class.java).getNotificationChannel(CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE) {
+                return
+            }
+            app.getSharedPreferences("shiyin", MODE_PRIVATE).edit()
+                .putBoolean("standby_requested", true).apply()
+            runCatching {
+                Log.i(TAG, "sync starting AlarmStandbyService pid=${Process.myPid()}")
+                ContextCompat.startForegroundService(app, Intent(app, AlarmStandbyService::class.java))
+            }.onFailure {
+                Log.w(TAG, "sync startForegroundService failed: ${it.message}", it)
+            }
+        }
+
         suspend fun restoreAfterBoot(context: Context) {
-            val requested = context.getSharedPreferences("shiyin", MODE_PRIVATE).getBoolean("standby_requested", false)
             val schedules = synchronized(AppStore.lock) { AppStore.schedules(context) }
-            if (shouldRestoreStandby(requested, schedules, System.currentTimeMillis())) prepareForExit(context)
+            if (shouldRestoreStandby(schedules, System.currentTimeMillis())) prepareForExit(context)
         }
 
         suspend fun prepareForExit(context: Context) {

@@ -15,9 +15,11 @@
 
 手机使用底部导航，宽窗口使用侧边导航。播放列表、目录与闹钟的新增按钮为 48dp，完整播放页的播放按钮为 52dp。点击区域至少 48dp，重复规则整行至少 56dp。列表、表单和选择面板可滚动；键盘与系统栏由 Scaffold/insets 处理。低高度窗口的时间输入使用横向紧凑布局，字段和操作按钮位于键盘上方。
 
-## 后台运行入口
+## 后台运行与守护包入口
 
 取消顶部和菜单中的后台运行按钮；手机底部 tab 栏上滑 48dp 后松手进入后台，普通点击仍切换栏目。手势区域提供无障碍自定义操作。播放/编辑等无 tab 栏页面先返回主栏目；歌曲首页返回仍采用后台退出流程。权限与后台入口移至设置，首次自动申请普通权限，拒绝后不反复弹窗。倒计时卡片主要显示剩余与总时长，点击从原时长重启。
+
+可选守护包通过 `GuardSetupDialog`（[GuardDialogs.kt](../app/src/main/java/com/Huffer342/shiyin/ui/GuardDialogs.kt)）引导：首次切换至「闹钟」栏目且未安装守护包时自动弹出一次（可点击“暂不安装”跳过）；之后可随时从「设置 → 闹钟守护包」或「权限与后台」弹窗进入安装、打开守护设置/系统应用信息或一键卸载。
 
 MainActivity 使用 singleTask，需验证重复点击图标、通知返回和设置页返回后不残留同类任务。无卡片不能只看界面消失，应同时检查系统最近任务、服务状态和触发日志。
 
@@ -35,7 +37,8 @@ MainActivity 使用 singleTask，需验证重复点击图标、通知返回和�
 - [PlayerScreens.kt](../app/src/main/java/com/Huffer342/shiyin/ui/PlayerScreens.kt)：歌曲、迷你/完整播放页及可编辑队列。
 - [LibraryScreens.kt](../app/src/main/java/com/Huffer342/shiyin/ui/LibraryScreens.kt)：播放列表、目录、歌曲多选和睡眠定时。
 - [ScheduleScreens.kt](../app/src/main/java/com/Huffer342/shiyin/ui/ScheduleScreens.kt)：闹钟编辑、淡入与单次上限。
-- [SettingsScreen.kt](../app/src/main/java/com/Huffer342/shiyin/ui/SettingsScreen.kt)：精简设置、主题配置和按需帮助。
+- [SettingsScreen.kt](../app/src/main/java/com/Huffer342/shiyin/ui/SettingsScreen.kt)：精简设置、闹钟守护包入口、主题配置和按需帮助。
+- [GuardDialogs.kt](../app/src/main/java/com/Huffer342/shiyin/ui/GuardDialogs.kt)、[GuardActivity.kt](../guard/src/main/java/com/Huffer342/shiyin/guard/GuardActivity.kt)：可选闹钟守护包安装、权限与 vivo 系统后台设置引导。
 - [ThemeSettings.kt](../app/src/main/java/com/Huffer342/shiyin/ThemeSettings.kt)、[主题](../app/src/main/java/com/Huffer342/shiyin/ui/theme)：配色校验、对比度和系统栏外观。
 
 ## 模拟器测试音频

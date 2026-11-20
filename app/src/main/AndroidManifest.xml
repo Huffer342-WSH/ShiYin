@@ -11,6 +11,15 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <permission
+        android:name="com.Huffer342.shiyin.permission.COMPANION_ALARM"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.Huffer342.shiyin.permission.COMPANION_ALARM" />
+    <queries>
+        <package android:name="com.Huffer342.shiyin.guard" />
+    </queries>
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -31,21 +40,43 @@
         <activity android:name=".AlarmActivity" android:exported="false" android:launchMode="singleTop"
             android:excludeFromRecents="true" android:showWhenLocked="true" android:turnScreenOn="true" android:taskAffinity="${applicationId}.alarm" android:theme="@style/Theme.ShiYin" />
         <service android:name=".AlarmStandbyService" android:exported="false"
-            android:stopWithTask="false" android:foregroundServiceType="systemExempted" />
-        <service android:name=".PlaybackService" android:exported="false"
+            android:stopWithTask="false" android:foregroundServiceType="mediaPlayback|systemExempted" />
+        <service android:name=".PlaybackService" android:exported="true"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
-        <receiver android:name=".ScheduleReceiver" android:exported="false">
+        <receiver android:name=".ScheduleReceiver" android:enabled="true" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.USER_PRESENT" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".CompanionAlarmReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="com.Huffer342.shiyin.permission.COMPANION_ALARM">
+            <intent-filter>
+                <action android:name="com.Huffer342.shiyin.COMPANION_ALARM" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

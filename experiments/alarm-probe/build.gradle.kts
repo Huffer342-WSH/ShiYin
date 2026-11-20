@@ -1,4 +1,4 @@
-plugins { id("com.android.application") version "9.5.1" }
+plugins { alias(libs.plugins.android.application) }
 
 android {
     namespace = "com.Huffer342.shiyin.alarmprobe"

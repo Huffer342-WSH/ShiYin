@@ -108,6 +108,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         scanLibrary()
     }
 
+    fun syncGuard() = operation(showBusy = false) {
+        withContext(Dispatchers.IO) { ScheduleScheduler.reschedule(context) }
+        loadState()
+    }
+
     private suspend fun scanLibrary() {
         val result = withContext(Dispatchers.IO) {
             if (folders.isNotEmpty()) MusicLibrary.scanFolders(context, folders)

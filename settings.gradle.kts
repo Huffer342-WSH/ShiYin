@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ShiYin"
 include(":app")
+include(":guard")

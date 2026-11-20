@@ -9,11 +9,10 @@ class AlarmStandbyPolicyTest {
         hour = 7, minute = 0, enabled = enabled, nextAt = at
     )
 
-    @Test fun bootRestoresOnlyRequestedFutureTasks() {
-        assertTrue(shouldRestoreStandby(true, listOf(alarm(200_000)), 100_000))
-        assertFalse(shouldRestoreStandby(false, listOf(alarm(200_000)), 100_000))
-        assertFalse(shouldRestoreStandby(true, listOf(alarm(200_000, false), alarm(0), alarm(99_000)), 100_000))
-        assertFalse(shouldRestoreStandby(true, emptyList(), 100_000))
+    @Test fun bootRestoresFutureTasksWithoutRequiringManualBackgroundSwipe() {
+        assertTrue(shouldRestoreStandby(listOf(alarm(200_000)), 100_000))
+        assertFalse(shouldRestoreStandby(listOf(alarm(200_000, false), alarm(0), alarm(99_000)), 100_000))
+        assertFalse(shouldRestoreStandby(emptyList(), 100_000))
     }
 
     @Test fun canceledAndUnregisteredAlarmsDoNotKeepServiceAlive() {

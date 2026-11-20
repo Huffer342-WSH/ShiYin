@@ -30,9 +30,9 @@ import com.Huffer342.shiyin.*
 @Composable
 fun SettingsScreen(
     padding: PaddingValues, listState: LazyListState, audioAllowed: Boolean, exactAllowed: Boolean,
-    notificationsAllowed: Boolean, calendarYears: List<Int>, busy: Boolean, theme: ThemeSettings,
+    notificationsAllowed: Boolean, guardStatus: CompanionGuardStatus, calendarYears: List<Int>, busy: Boolean, theme: ThemeSettings,
     onAudio: () -> Unit, onExact: () -> Unit, onNotifications: () -> Unit, onAppSettings: () -> Unit,
-    onUpdateCalendar: () -> Unit, onTheme: () -> Unit, onHelp: () -> Unit
+    onGuard: () -> Unit, onUpdateCalendar: () -> Unit, onTheme: () -> Unit, onHelp: () -> Unit
 ) {
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize().consumeWindowInsets(padding).testTag("settings_list"),
         contentPadding = padding) {
@@ -49,6 +49,13 @@ fun SettingsScreen(
                     else android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                 runCatching { context.startActivity(android.content.Intent(action, android.net.Uri.parse("package:${context.packageName}"))) }
             })
+            val guardSummary = when {
+                !guardStatus.installed -> "未安装（可选）· 防止最近任务划掉失效"
+                !guardStatus.signatureMatches -> "签名不匹配 · 请从本应用重新安装"
+                !guardStatus.canScheduleExactAlarms -> "已安装 · 请允许守护精确闹钟"
+                else -> "已安装 · 已就绪（同步 ${guardStatus.activeCount} 个闹钟）"
+            }
+            SettingRow(Icons.Rounded.VerifiedUser, "闹钟守护包", guardSummary, onGuard)
             SettingRow(Icons.Rounded.BatterySaver, "权限与后台", "授权、自启动与后台锁定", onAppSettings)
             HorizontalDivider()
             SectionLabel("工作日日历")
@@ -140,16 +147,16 @@ fun PlayerHelpDialog(onDismiss: () -> Unit) {
             Text("在目录栏目选择本地文件夹，或允许读取音乐库。先试听确认音频可访问。")
             Text("2 · 创建闹钟与倒计时", style = MaterialTheme.typography.titleMedium)
             Text("闹钟栏目可设置时刻；更多菜单中的倒计时按秒开始。计时结束后才播放，睡眠定时则是到点停止播放。请检查通知、闹钟和提醒权限。")
-            Text("3 · 正确进入后台", style = MaterialTheme.typography.titleMedium)
-            Text("保存任务后，在底部栏目栏向上滑动，等待通知出现，App 会自己关闭卡片。不要通过系统上划清理来退出。")
+            Text("3 · 后台等待与最近任务卡片", style = MaterialTheme.typography.titleMedium)
+            Text("保存或启用闹钟后，App 会自动启动后台等待服务。在 vivo OriginOS 等国产系统上，只要在系统最近任务中手动上划卡片，系统就会停止单应用并清空闹钟。\n• 可选方式（推荐）：在「设置 → 闹钟守护包」安装配套守护组件（无桌面图标、无常驻卡片），即使划掉时音卡片或点「清除全部」，闹钟仍可准时唤醒响铃。\n• 单应用方式：在最近任务给卡片【加锁】后按 Home 退回桌面（仅防“清除全部”，不要手动上划）；或在 App 底部导航栏上滑收起卡片。")
             Text("4 · 全屏响铃", style = MaterialTheme.typography.titleMedium)
             Text("在设置中允许全屏闹钟。vivo 若仍不显示，请在应用信息 → 查看所有权限中允许“锁屏显示”。使用手机时系统通常显示横幅；未获全屏授权时可点通知进入。收起页面不停止音频，停止按钮结束本次播放。")
             Text("5 · 注意事项", style = MaterialTheme.typography.titleMedium)
             Text("指定目录包含子目录。使用时自动检测文件变化，重新打开补扫；停止监控不删除文件。")
             Text("睡眠定时只停止当前播放，不取消后续闹钟。新闹钟开始会结束这次睡眠定时。")
             Text("闹钟使用闹钟音量，淡入不修改系统音量。单次上限包含暂停与等待时间，试听最多 30 秒。")
-            Text("在底部栏目栏向上滑动，或在歌曲首页按返回，可由 App 自己关闭卡片。有有效闹钟时会保留后台等待通知；全部闹钟取消后结束等待。")
-            Text("手动上划卡片或强行停止，部分系统会停用整个应用，使闹钟失效。请使用 App 的后台运行入口；长期锁屏和不同系统仍需实测。")
+            Text("存在有效闹钟时会自动维护后台等待通知；全部闹钟关闭或触发完成后自动结束等待。")
+            Text("未安装守护包时，在系统最近任务中手动上划卡片或点击“强行停止”会停用应用并使闹钟失效，需要重新打开一次应用恢复；长期锁屏和不同系统仍需实测。")
         } }, confirmButton = { TextButton(onClick = onDismiss) { Text("知道了") } })
 }
 
