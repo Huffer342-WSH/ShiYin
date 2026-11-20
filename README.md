@@ -11,6 +11,8 @@
 
 最低支持 Android 7.0（API 24），主要验收目标为 Android 15 真机。当前不支持网络流媒体和 SMB；中国大陆工作日日历需要联网下载，缓存后可离线使用。详细行为与限制见 [项目说明](docs/项目说明.md)。
 
+历次发布和待发布改动见[更新日志](CHANGELOG.md)。
+
 ## 下载与使用
 
 在 [GitHub Releases](https://github.com/Huffer342-WSH/ShiYin/releases) 选择对应版本。日常安装选 `ShiYin-版本-release.apk`，调试选 `ShiYin-版本-debug.apk`。预发布标为 Pre-release。两种 APK 共用包名，签名不同；从旧测试包切换时请先保存重要数据。

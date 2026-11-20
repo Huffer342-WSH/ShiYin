@@ -41,12 +41,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: gradle/actions/setup-gradle@v5
-      - name: Check release reuse policy
+      - name: Test release artifact selection and notes
         uses: actions/github-script@v8
         with:
           script: |
             const { execFileSync } = require('node:child_process');
             execFileSync(process.execPath, ['--test', '.github/scripts/release-source.test.cjs'], { stdio: 'inherit' });
+            execFileSync('bash', ['.github/scripts/release-notes.test.sh'], { stdio: 'inherit' });
       - name: Lint
         run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:lintDebug
       - name: Unit tests

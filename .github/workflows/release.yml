@@ -52,6 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/download-artifact@v7
         with:
@@ -93,7 +94,8 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.source.outputs.version }}
         run: |
+          bash .github/scripts/release-notes.sh "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
           flags=(--latest)
           if [[ "$RELEASE_TAG" == pre-* ]]; then flags=(--prerelease --latest=false); fi
           gh release create "$RELEASE_TAG" "ShiYin-$VERSION-release.apk" "ShiYin-$VERSION-debug.apk" \
-            --verify-tag "${flags[@]}" --title "ShiYin $VERSION" --notes-file "docs/releases/v$VERSION.md"
+            --verify-tag "${flags[@]}" --title "ShiYin $VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
