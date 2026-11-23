@@ -31,6 +31,23 @@ object AppStore {
         check(prefs(context).edit().putString("folders_v1", LibraryCodec.folders(values)).commit()) { "目录保存失败" }
     }
 
+    fun systemLibraryEnabled(context: Context): Boolean =
+        prefs(context).getBoolean("system_library_enabled", true)
+
+    fun saveSystemLibraryEnabled(context: Context, enabled: Boolean) {
+        check(prefs(context).edit().putBoolean("system_library_enabled", enabled).commit()) { "系统音乐库设置保存失败" }
+    }
+
+    fun mediaDirectoryOverrides(context: Context): Map<String, Boolean> =
+        LibraryCodec.readMediaDirectoryOverrides(prefs(context).getString("media_directory_overrides_v1", "{}")!!)
+
+    fun saveMediaDirectoryOverrides(context: Context, values: Map<String, Boolean>) {
+        check(prefs(context).edit()
+            .putString("media_directory_overrides_v1", LibraryCodec.mediaDirectoryOverrides(values)).commit()) {
+            "目录排除设置保存失败"
+        }
+    }
+
     fun notice(context: Context, message: String) = synchronized(lock) {
         prefs(context).edit().putString("notice", message).apply()
     }

@@ -32,6 +32,7 @@ class NavigationUiTest {
         compose.onNodeWithTag("main_pager").performTouchInput { swipeRight() }
         compose.onNodeWithTag("nav_2").assertIsSelected()
         Espresso.pressBack()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("library_search").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("library_search").assertTextContains("navigation-state-check")
         compose.onNodeWithContentDescription("清空搜索").performClick()
         compose.onNodeWithTag("library_search").assert(hasText("navigation-state-check").not())

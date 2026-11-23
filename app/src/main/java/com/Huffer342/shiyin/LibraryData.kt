@@ -75,4 +75,12 @@ object LibraryCodec {
             WatchedFolder(o.getString("uri"), o.getString("name"))
         }.distinctBy { it.uri }
     }
+
+    fun mediaDirectoryOverrides(values: Map<String, Boolean>): String =
+        JSONObject().apply { values.toSortedMap().forEach { (key, enabled) -> put(key, enabled) } }.toString()
+
+    fun readMediaDirectoryOverrides(text: String): Map<String, Boolean> {
+        val json = JSONObject(text)
+        return json.keys().asSequence().associateWith(json::getBoolean)
+    }
 }

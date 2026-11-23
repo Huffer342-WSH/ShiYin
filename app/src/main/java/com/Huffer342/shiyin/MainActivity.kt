@@ -136,8 +136,12 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
         }
     }
     val requestAudio = {
-        if (model.folders.isNotEmpty() || MusicLibrary.hasPermission(activity)) model.scan()
-        else directoryPicker.launch(null)
+        when {
+            model.systemLibraryEnabled && !MusicLibrary.hasPermission(activity) ->
+                audioPermission.launch(MusicLibrary.permission)
+            model.systemLibraryEnabled || model.folders.isNotEmpty() -> model.scan()
+            else -> directoryPicker.launch(null)
+        }
     }
     val requestExact = {
         if (Build.VERSION.SDK_INT >= 31) settings(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
@@ -255,6 +259,7 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                 val icons = listOf(Icons.Rounded.MusicNote, Icons.AutoMirrored.Rounded.PlaylistPlay, Icons.Rounded.Folder, Icons.Rounded.Alarm)
                 val title = when (page) {
                     "settings" -> "设置"; "theme" -> "主题"; "alarms" -> "闹钟"
+                    "systemLibrary" -> "系统音乐库"
                     else -> currentPlaylist?.name ?: labels[tab]
                 }
                 val navigate: (Int) -> Unit = {
@@ -326,6 +331,19 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                                     guardDialog = true
                                 }, model::updateCalendar, { page = "theme" }, { help = true })
                             "theme" -> ThemeScreen(model.theme, padding, model::updateTheme)
+                            "systemLibrary" -> MediaStoreDirectoryScreen(
+                                model.systemLibraryEnabled,
+                                audioAllowed,
+                                model.mediaStoreDirectories,
+                                padding,
+                                {
+                                    model.updateSystemLibraryEnabled(true)
+                                    if (!audioAllowed) audioPermission.launch(MusicLibrary.permission)
+                                },
+                                { audioPermission.launch(MusicLibrary.permission) },
+                                { model.scan() },
+                                model::setMediaDirectoryIncluded
+                            )
                             else -> when {
                                 currentPlaylist != null -> PlaylistDetailScreen(currentPlaylist, padding,
                                     { song, shuffled -> model.play(song, currentPlaylist.songs, shuffled) },
@@ -343,8 +361,24 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                                     val inner = PaddingValues(0.dp)
                                     when (index) {
                                         1 -> PlaylistListScreen(model.playlists, inner, { playlistId = it }, { nameAction = "new" })
-                                        2 -> FolderListScreen(model.folders, model.folderScans, inner,
-                                            { directoryPicker.launch(null) }, { folderUri = it }, { removeFolderUri = it.uri })
+                                        2 -> FolderListScreen(
+                                            model.systemLibraryEnabled,
+                                            audioAllowed,
+                                            model.systemLibrarySongCount,
+                                            model.mediaStoreDirectories,
+                                            model.systemLibraryError,
+                                            model.folders,
+                                            model.folderScans,
+                                            inner,
+                                            { enabled ->
+                                                model.updateSystemLibraryEnabled(enabled)
+                                                if (enabled && !audioAllowed) audioPermission.launch(MusicLibrary.permission)
+                                            },
+                                            { page = "systemLibrary" },
+                                            { directoryPicker.launch(null) },
+                                            { folderUri = it },
+                                            { removeFolderUri = it.uri }
+                                        )
                                         3 -> ScheduleListScreen(model.schedules, model.busy, exactAllowed, inner, scheduleList,
                                             { newAlarm() }, { if (!model.busy) {
                                                 if (it.countdownSeconds > 0) model.save(restartCountdown(it, System.currentTimeMillis()))
@@ -360,7 +394,8 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                                             requestAudio, { song, queue -> model.play(song, queue) }, { newAlarm(it) },
                                             { addTrackUri = it.uri }, { song, next -> model.enqueue(song, next) },
                                             searchVisible = searchVisible,
-                                            sourceError = model.folderScans.firstOrNull { it.error.isNotEmpty() }?.error.orEmpty())
+                                            sourceError = model.folderScans.firstOrNull { it.error.isNotEmpty() }?.error
+                                                ?: model.systemLibraryError)
                                     }
                                 }
                             }

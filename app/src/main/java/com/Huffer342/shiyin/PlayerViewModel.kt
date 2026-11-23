@@ -65,6 +65,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var playlists by mutableStateOf<List<MusicPlaylist>>(emptyList()); private set
     var folders by mutableStateOf<List<WatchedFolder>>(emptyList()); private set
     var folderScans by mutableStateOf<List<FolderScan>>(emptyList()); private set
+    var systemLibraryEnabled by mutableStateOf(true); private set
+    var systemLibrarySongCount by mutableStateOf(0); private set
+    var systemLibraryError by mutableStateOf(""); private set
+    var mediaStoreDirectories by mutableStateOf<List<MediaStoreDirectory>>(emptyList()); private set
+    private var mediaDirectoryOverrides = emptyMap<String, Boolean>()
     var schedules by mutableStateOf<List<Schedule>>(emptyList()); private set
     var calendarYears by mutableStateOf<List<Int>>(emptyList()); private set
     var playback by mutableStateOf(PlaybackUi()); private set
@@ -114,13 +119,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private suspend fun scanLibrary() {
-        val result = withContext(Dispatchers.IO) {
-            if (folders.isNotEmpty()) MusicLibrary.scanFolders(context, folders)
-            else LibraryScan(if (MusicLibrary.hasPermission(context)) MusicLibrary.scan(context) else emptyList(), emptyList())
+        val (system, custom) = withContext(Dispatchers.IO) {
+            val systemScan = when {
+                !systemLibraryEnabled -> MediaStoreScan()
+                !MusicLibrary.hasPermission(context) -> MediaStoreScan(error = "未允许读取系统音乐库")
+                else -> runCatching { MusicLibrary.scanMediaStore(context, mediaDirectoryOverrides) }
+                    .getOrElse { MediaStoreScan(error = it.message ?: "系统音乐库不可访问") }
+            }
+            val folderScan = if (folders.isNotEmpty()) MusicLibrary.scanFolders(context, folders)
+                else LibraryScan(emptyList(), emptyList())
+            systemScan to folderScan
         }
-        songs = result.songs
-        folderScans = result.folders
-        watchedUris = result.watchUris
+        songs = mergeLibrarySongs(system, custom)
+        folderScans = custom.folders
+        watchedUris = custom.watchUris
+        systemLibrarySongCount = system.songs.size
+        systemLibraryError = system.error
+        mediaStoreDirectories = system.directories
         lastScanAt = SystemClock.elapsedRealtime()
         libraryDirty = false
         configureObservers()
@@ -128,7 +143,30 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun scan(silent: Boolean = false) = operation {
         scanLibrary()
-        if (!silent) message = folderScans.firstOrNull { it.error.isNotEmpty() }?.error ?: "已更新 ${songs.size} 首歌曲"
+        if (!silent) message = folderScans.firstOrNull { it.error.isNotEmpty() }?.error
+            ?: systemLibraryError.takeIf { it.isNotEmpty() }
+            ?: "已更新 ${songs.size} 首歌曲"
+    }
+
+    fun updateSystemLibraryEnabled(enabled: Boolean) = operation {
+        withContext(Dispatchers.IO) {
+            synchronized(AppStore.lock) { AppStore.saveSystemLibraryEnabled(context, enabled) }
+        }
+        systemLibraryEnabled = enabled
+        scanLibrary()
+        message = if (enabled && !MusicLibrary.hasPermission(context)) "请允许读取系统音乐库"
+            else if (enabled) "已开启系统音乐库" else "已关闭系统音乐库"
+    }
+
+    fun setMediaDirectoryIncluded(directory: MediaStoreDirectory, included: Boolean) = operation {
+        withContext(Dispatchers.IO) {
+            synchronized(AppStore.lock) {
+                AppStore.saveMediaDirectoryOverrides(context, mediaDirectoryOverrides + (directory.key to included))
+            }
+        }
+        mediaDirectoryOverrides = mediaDirectoryOverrides + (directory.key to included)
+        scanLibrary()
+        message = if (included) "已收录 ${directory.path}" else "已排除 ${directory.path}"
     }
 
     fun setMonitoring(enabled: Boolean) {
@@ -137,7 +175,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun configureObservers() {
-        val desired = if (monitoring) watchedUris + MediaStore.Audio.Media.EXTERNAL_CONTENT_URI else emptySet()
+        val systemUri = if (systemLibraryEnabled && MusicLibrary.hasPermission(context))
+            setOf(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI) else emptySet()
+        val desired = if (monitoring) watchedUris + systemUri else emptySet()
         if (desired == registeredUris) return
         context.contentResolver.unregisterContentObserver(observer)
         registeredUris = desired
@@ -152,6 +192,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             synchronized(AppStore.lock) {
                 playlists = AppStore.playlists(context)
                 folders = AppStore.folders(context)
+                systemLibraryEnabled = AppStore.systemLibraryEnabled(context)
+                mediaDirectoryOverrides = AppStore.mediaDirectoryOverrides(context)
                 schedules = AppStore.schedules(context)
                 calendarYears = AppStore.calendars(context).keys.sorted()
             }

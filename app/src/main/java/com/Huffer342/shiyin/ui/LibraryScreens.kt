@@ -14,6 +14,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.Huffer342.shiyin.*
@@ -83,12 +85,47 @@ fun PlaylistDetailScreen(
 
 @Composable
 fun FolderListScreen(
-    folders: List<WatchedFolder>, scans: List<FolderScan>, padding: PaddingValues,
-    onAdd: () -> Unit, onOpen: (String) -> Unit, onRemove: (WatchedFolder) -> Unit
+    systemEnabled: Boolean,
+    systemPermission: Boolean,
+    systemSongCount: Int,
+    mediaDirectories: List<MediaStoreDirectory>,
+    systemError: String,
+    folders: List<WatchedFolder>,
+    scans: List<FolderScan>,
+    padding: PaddingValues,
+    onSystemEnabledChange: (Boolean) -> Unit,
+    onOpenSystem: () -> Unit,
+    onAdd: () -> Unit,
+    onOpen: (String) -> Unit,
+    onRemove: (WatchedFolder) -> Unit
 ) {
     LazyColumn(Modifier.fillMaxSize().consumeWindowInsets(padding).testTag("folder_list"), contentPadding = padding) {
-        if (folders.isEmpty()) item {
-            EmptyState(Icons.Rounded.FolderOpen, "没有指定目录", "", "选择目录", onAdd)
+        item(key = "system_library") {
+            val excluded = mediaDirectories.count { !it.included }
+            val status = when {
+                !systemEnabled -> "已关闭"
+                !systemPermission -> "未授权，点击管理"
+                systemError.isNotEmpty() -> systemError
+                else -> "${systemSongCount} 首 · 已排除 ${excluded} 个目录"
+            }
+            ListItem(
+                headlineContent = { Text("系统音乐库") },
+                supportingContent = {
+                    Text(status, color = if (systemError.isNotEmpty()) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant)
+                },
+                leadingContent = { Icon(Icons.Rounded.LibraryMusic, null, Modifier.padding(8.dp).size(32.dp)) },
+                trailingContent = {
+                    Switch(
+                        checked = systemEnabled,
+                        onCheckedChange = onSystemEnabledChange,
+                        modifier = Modifier.semantics { contentDescription = "系统音乐库开关" }
+                            .testTag("system_library_switch")
+                    )
+                },
+                modifier = Modifier.clickable(onClick = onOpenSystem).testTag("system_library")
+            )
+            HorizontalDivider()
         }
         items(folders, key = { it.uri }) { folder ->
             val scan = scans.find { it.folder.uri == folder.uri }
@@ -110,6 +147,57 @@ fun FolderListScreen(
                 }, modifier = Modifier.clickable { onOpen(folder.uri) })
         }
         item { Spacer(Modifier.height(88.dp)) }
+    }
+}
+
+@Composable
+fun MediaStoreDirectoryScreen(
+    enabled: Boolean,
+    permission: Boolean,
+    directories: List<MediaStoreDirectory>,
+    padding: PaddingValues,
+    onEnable: () -> Unit,
+    onRequestPermission: () -> Unit,
+    onRefresh: () -> Unit,
+    onIncludedChange: (MediaStoreDirectory, Boolean) -> Unit
+) {
+    LazyColumn(
+        Modifier.fillMaxSize().consumeWindowInsets(padding).testTag("system_library_directories"),
+        contentPadding = padding
+    ) {
+        when {
+            !enabled -> item {
+                EmptyState(Icons.Rounded.LibraryMusic, "系统音乐库已关闭", "", "开启", onEnable)
+            }
+            !permission -> item {
+                EmptyState(Icons.Rounded.LibraryMusic, "需要音乐权限", "授权后才能读取和排除系统音乐目录", "允许访问", onRequestPermission)
+            }
+            directories.isEmpty() -> item {
+                EmptyState(Icons.Rounded.LibraryMusic, "系统音乐库没有音频", "", "重新扫描", onRefresh)
+            }
+            else -> items(directories, key = { it.key }) { directory ->
+                val volume = when (directory.volumeName) {
+                    "external_primary" -> "手机存储"
+                    "external" -> "共享存储"
+                    "legacy" -> "设备存储"
+                    else -> directory.volumeName
+                }
+                ListItem(
+                    headlineContent = { Text(directory.path, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                    supportingContent = { Text("$volume · ${directory.songCount} 首") },
+                    leadingContent = { Icon(Icons.Rounded.Folder, null) },
+                    trailingContent = {
+                        Switch(
+                            checked = directory.included,
+                            onCheckedChange = { onIncludedChange(directory, it) },
+                            modifier = Modifier.semantics { contentDescription = "收录 ${directory.path}" }
+                                .testTag("media_directory_${directory.key}")
+                        )
+                    }
+                )
+            }
+        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
