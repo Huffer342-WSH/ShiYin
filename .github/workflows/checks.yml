@@ -49,9 +49,9 @@ jobs:
             execFileSync(process.execPath, ['--test', '.github/scripts/release-source.test.cjs'], { stdio: 'inherit' });
             execFileSync('bash', ['.github/scripts/release-notes.test.sh'], { stdio: 'inherit' });
       - name: Lint
-        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:lintDebug
+        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:lintDebug :guard:lintDebug
       - name: Unit tests
-        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:testDebugUnitTest
+        run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:testDebugUnitTest :guard:testDebugUnitTest
       - name: Build APKs
         run: bash ./gradlew --no-daemon --build-cache --stacktrace :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease
       - uses: actions/upload-artifact@v6
@@ -110,7 +110,7 @@ jobs:
           script: |
             adb install -g "$RUNNER_TEMP/release-smoke.apk"
             adb shell am start -W -n com.Huffer342.shiyin/.MainActivity
-            timeout 30s adb exec-out uiautomator dump /dev/tty | grep -F 'text="使用手册"' >/dev/null
+            timeout 30s adb exec-out uiautomator dump /dev/tty | grep -F '运行环境配置' >/dev/null
             adb shell input keyevent BACK
             timeout 30s adb exec-out uiautomator dump /dev/tty | grep -F 'text="歌曲"' >/dev/null
             adb install "$RUNNER_TEMP/guard-smoke.apk"
