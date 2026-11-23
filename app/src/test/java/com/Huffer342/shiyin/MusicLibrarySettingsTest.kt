@@ -1,5 +1,8 @@
 package com.Huffer342.shiyin
 
+import com.Huffer342.shiyin.ui.audioBitrateText
+import com.Huffer342.shiyin.ui.audioFormatText
+import com.Huffer342.shiyin.ui.audioSizeText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -40,5 +43,18 @@ class MusicLibrarySettingsTest {
     fun directoryOverridesSurviveStorageRoundTrip() {
         val values = mapOf("external_primary|recordings/" to true, "external_primary|ringtones/" to false)
         assertEquals(values, LibraryCodec.readMediaDirectoryOverrides(LibraryCodec.mediaDirectoryOverrides(values)))
+    }
+
+    @Test
+    fun audioDetailUnitsAreReadable() {
+        assertEquals("未知", audioSizeText(-1))
+        assertEquals("512 B", audioSizeText(512))
+        assertEquals("1.5 KB", audioSizeText(1536))
+        assertEquals("2.0 MB", audioSizeText(2 * 1024 * 1024L))
+        assertEquals("未知", audioBitrateText(0))
+        assertEquals("128 kbps", audioBitrateText(128_000))
+        assertEquals("M4A · audio/mp4", audioFormatText("song.m4a", "audio/mp4"))
+        assertEquals("FLAC", audioFormatText("song.flac", ""))
+        assertEquals("未知", audioFormatText("song", ""))
     }
 }

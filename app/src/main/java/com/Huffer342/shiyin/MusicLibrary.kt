@@ -3,12 +3,14 @@ package com.Huffer342.shiyin
 import android.Manifest
 import android.content.ContentUris
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -20,6 +22,16 @@ data class Song(val uri: String, val title: String, val artist: String, val dura
     fun mediaItem(): MediaItem = MediaItem.Builder().setMediaId(uri).setUri(uri)
         .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setArtist(artist).build()).build()
 }
+
+data class AudioDetails(
+    val source: String,
+    val fileName: String,
+    val location: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+    val bitrate: Long,
+    val folderUri: String
+)
 
 data class FolderEntry(val id: String, val parentId: String, val name: String, val song: Song? = null)
 data class FolderScan(val folder: WatchedFolder, val songs: List<Song>, val error: String = "", val entries: List<FolderEntry> = emptyList())
@@ -95,6 +107,104 @@ object MusicLibrary {
                     DocumentsContract.getTreeDocumentId(it.uri) == DocumentsContract.getTreeDocumentId(uri)
             }
         }.getOrDefault(false)
+    }
+
+    fun audioDetails(context: Context, song: Song): AudioDetails {
+        val uri = Uri.parse(song.uri)
+        val mediaStore = uri.authority == "media"
+        val projection = mutableListOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE)
+        if (mediaStore) {
+            projection += MediaStore.MediaColumns.MIME_TYPE
+            if (Build.VERSION.SDK_INT >= 29) {
+                projection += MediaStore.MediaColumns.RELATIVE_PATH
+                projection += MediaStore.MediaColumns.VOLUME_NAME
+            }
+            else @Suppress("DEPRECATION") projection.add(MediaStore.MediaColumns.DATA)
+        }
+        var fileName = ""
+        var location = ""
+        var mimeType = ""
+        var volumeName = ""
+        var size = -1L
+        runCatching {
+            context.contentResolver.query(uri, projection.toTypedArray(), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME).takeIf { it >= 0 }
+                        ?.let { fileName = cursor.getString(it).orEmpty() }
+                    cursor.getColumnIndex(OpenableColumns.SIZE).takeIf { it >= 0 }
+                        ?.let { size = cursor.getLong(it) }
+                    cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE).takeIf { it >= 0 }
+                        ?.let { mimeType = cursor.getString(it).orEmpty() }
+                    cursor.getColumnIndex(MediaStore.MediaColumns.VOLUME_NAME).takeIf { it >= 0 }
+                        ?.let { volumeName = cursor.getString(it).orEmpty() }
+                    location = if (Build.VERSION.SDK_INT >= 29) {
+                        cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH).takeIf { it >= 0 }
+                            ?.let { cursor.getString(it).orEmpty() }.orEmpty()
+                    } else {
+                        @Suppress("DEPRECATION")
+                        cursor.getColumnIndex(MediaStore.MediaColumns.DATA).takeIf { it >= 0 }
+                            ?.let { cursor.getString(it).orEmpty() }.orEmpty()
+                    }
+                }
+            }
+        }
+        if (fileName.isBlank()) fileName = uri.lastPathSegment.orEmpty().ifBlank { song.title }
+        if (mimeType.isBlank()) {
+            mimeType = runCatching { context.contentResolver.getType(uri) }.getOrNull().orEmpty()
+        }
+        if (size < 0) {
+            size = runCatching {
+                context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
+            }.getOrNull() ?: -1L
+        }
+        if (location.isBlank()) {
+            location = if (mediaStore) fileName else runCatching {
+                DocumentsContract.getDocumentId(uri).substringAfter(':')
+            }.getOrNull().orEmpty().ifBlank { fileName }
+        } else if (Build.VERSION.SDK_INT >= 29 && !location.endsWith(fileName)) {
+            location += fileName
+        }
+        val bitrate = runCatching {
+            MediaMetadataRetriever().let { retriever ->
+                try {
+                    retriever.setDataSource(context, uri)
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
+                } finally {
+                    retriever.release()
+                }
+            }
+        }.getOrDefault(0L)
+        val folderUri = runCatching {
+            if (mediaStore && Build.VERSION.SDK_INT >= 29) {
+                val storage = if (volumeName == "external_primary" || volumeName == "external") "primary" else volumeName
+                val relative = location.removeSuffix(fileName).trim('/')
+                val documentId = if (relative.isEmpty()) "$storage:" else "$storage:$relative"
+                DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", documentId)
+            } else if (DocumentsContract.isDocumentUri(context, uri)) {
+                val documentId = DocumentsContract.getDocumentId(uri)
+                val separator = documentId.lastIndexOf('/')
+                val parentId = if (separator >= 0) documentId.substring(0, separator)
+                    else documentId.substringBefore(':') + ":"
+                DocumentsContract.buildDocumentUri(requireNotNull(uri.authority), parentId)
+            } else null
+        }.getOrNull()
+        return AudioDetails(
+            if (mediaStore) "系统音乐库" else "自选目录",
+            fileName,
+            location,
+            mimeType,
+            size,
+            bitrate,
+            folderUri?.toString().orEmpty()
+        )
+    }
+
+    fun fileManagerIntent(details: AudioDetails): Intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "audio/*"
+        if (Build.VERSION.SDK_INT >= 26 && details.folderUri.isNotEmpty()) {
+            putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse(details.folderUri))
+        }
     }
 
     fun scan(context: Context): List<Song> = scanMediaStore(context, emptyMap()).songs

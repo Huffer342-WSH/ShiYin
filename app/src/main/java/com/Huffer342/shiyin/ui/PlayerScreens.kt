@@ -1,8 +1,13 @@
 package com.Huffer342.shiyin.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.Toast
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -23,14 +28,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.Huffer342.shiyin.AudioDetails
+import com.Huffer342.shiyin.MusicLibrary
 import com.Huffer342.shiyin.PlaybackUi
 import com.Huffer342.shiyin.Song
 import com.Huffer342.shiyin.ui.theme.ShiYinTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @Composable
@@ -80,7 +91,10 @@ fun LibraryScreen(
     searchVisible: Boolean = true, sourceError: String = ""
 ) {
     val filtered = remember(songs, query) { songs.filter { it.title.contains(query, true) || it.artist.contains(query, true) } }
-    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().consumeWindowInsets(padding).testTag("library_list"),
+    var detailsSong by remember { mutableStateOf<Song?>(null) }
+    val listModifier = Modifier.fillMaxSize().consumeWindowInsets(padding).testTag("library_list")
+        .then(if (detailsSong == null) Modifier else Modifier.clearAndSetSemantics {})
+    LazyColumn(state = listState, modifier = listModifier,
         contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 16.dp)) {
         if (searchVisible) item {
             OutlinedTextField(query, onQuery, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("library_search"),
@@ -115,6 +129,10 @@ fun LibraryScreen(
                             DropdownMenuItem(text = { Text("加入队列") }, enabled = !playback.alarm, onClick = { menu = false; onQueue(song, false) })
                             DropdownMenuItem(text = { Text("添加到播放列表") }, onClick = { menu = false; onPlaylist(song) })
                             DropdownMenuItem(text = { Text("创建闹钟") }, onClick = { menu = false; onSchedule(song) })
+                            DropdownMenuItem(text = { Text("详细信息") }, onClick = {
+                                menu = false
+                                detailsSong = song
+                            })
                         }
                     }
                 },
@@ -122,6 +140,107 @@ fun LibraryScreen(
                     MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface),
                 modifier = Modifier.clickable(enabled = connected) { onPlay(song, filtered) })
         }
+    }
+    detailsSong?.let { song -> AudioDetailsDialog(song) { detailsSong = null } }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun AudioDetailsDialog(song: Song, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    var details by remember(song.uri) { mutableStateOf<AudioDetails?>(null) }
+    var error by remember(song.uri) { mutableStateOf("") }
+    var confirmFileManager by remember { mutableStateOf(false) }
+    LaunchedEffect(song.uri) {
+        runCatching { withContext(Dispatchers.IO) { MusicLibrary.audioDetails(context, song) } }
+            .onSuccess { details = it }
+            .onFailure { error = it.message ?: "无法读取音频信息" }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("音频详细信息") },
+        text = {
+            when {
+                details != null -> Column(
+                    Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    AudioDetailRow("标题", song.title)
+                    AudioDetailRow("艺术家", song.artist)
+                    AudioDetailRow("时长", durationText(song.duration))
+                    AudioDetailRow("来源", details!!.source)
+                    AudioDetailRow("文件名", details!!.fileName)
+                    AudioDetailRow(
+                        "位置",
+                        details!!.location,
+                        Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp)
+                            .combinedClickable(
+                                onClick = {
+                                    context.getSystemService(ClipboardManager::class.java)
+                                        .setPrimaryClip(ClipData.newPlainText("音频位置", details!!.location))
+                                    Toast.makeText(context, "路径已复制", Toast.LENGTH_SHORT).show()
+                                },
+                                onLongClick = { confirmFileManager = true }
+                            )
+                            .semantics { contentDescription = "音频位置，点击复制，长按打开文件管理器" }
+                            .testTag("audio_location")
+                    )
+                    AudioDetailRow("格式", audioFormatText(details!!.fileName, details!!.mimeType))
+                    AudioDetailRow("大小", audioSizeText(details!!.sizeBytes))
+                    AudioDetailRow("比特率", audioBitrateText(details!!.bitrate))
+                }
+                error.isNotEmpty() -> Text(error, color = MaterialTheme.colorScheme.error)
+                else -> Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("关闭") } }
+    )
+    if (confirmFileManager) AlertDialog(
+        onDismissRequest = { confirmFileManager = false },
+        title = { Text("打开文件管理器？") },
+        text = { Text("将离开时音，并在系统文件管理器中打开音频所在目录。") },
+        confirmButton = {
+            TextButton(onClick = {
+                confirmFileManager = false
+                runCatching { context.startActivity(MusicLibrary.fileManagerIntent(requireNotNull(details))) }
+                    .onFailure { Toast.makeText(context, "无法打开文件管理器", Toast.LENGTH_SHORT).show() }
+            }) { Text("打开") }
+        },
+        dismissButton = { TextButton(onClick = { confirmFileManager = false }) { Text("取消") } }
+    )
+}
+
+@Composable
+private fun AudioDetailRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+fun audioSizeText(bytes: Long): String = when {
+    bytes < 0 -> "未知"
+    bytes < 1024 -> "$bytes B"
+    bytes < 1024 * 1024 -> String.format(Locale.ROOT, "%.1f KB", bytes / 1024.0)
+    else -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
+}
+
+fun audioBitrateText(bitsPerSecond: Long): String =
+    if (bitsPerSecond <= 0) "未知" else "${(bitsPerSecond + 500) / 1000} kbps"
+
+fun audioFormatText(fileName: String, mimeType: String): String {
+    val extension = fileName.substringAfterLast('.', "").uppercase(Locale.ROOT)
+    return when {
+        extension.isNotEmpty() && mimeType.isNotEmpty() -> "$extension · $mimeType"
+        extension.isNotEmpty() -> extension
+        mimeType.isNotEmpty() -> mimeType
+        else -> "未知"
     }
 }
 
