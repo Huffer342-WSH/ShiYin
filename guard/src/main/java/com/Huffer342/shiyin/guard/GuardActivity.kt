@@ -78,7 +78,7 @@ class GuardActivity : Activity() {
             }
         }
 
-        notificationButton = addButton("允许通知（用于主应用卸载提醒）") {
+        notificationButton = addButton("允许守护通知") {
             if (Build.VERSION.SDK_INT >= 33 &&
                 checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
             ) {
@@ -88,7 +88,11 @@ class GuardActivity : Activity() {
             }
         }
 
-        addButton("打开系统应用设置（开启自启动 / 后台耗电）") {
+        addButton("打开 vivo 自启动管理") {
+            openAutoStartSettings()
+        }
+
+        addButton("打开守护应用信息（关联启动 / 后台耗电）") {
             openAppSettings()
         }
 
@@ -125,6 +129,15 @@ class GuardActivity : Activity() {
         refresh()
     }
 
+    private fun openAutoStartSettings() {
+        runCatching {
+            startActivity(
+                Intent("com.iqoo.secure.BGSTARTUPMANAGER")
+                    .addCategory(Intent.CATEGORY_DEFAULT)
+            )
+        }.onFailure { openAppSettings() }
+    }
+
     private fun openAppSettings() {
         runCatching {
             startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
@@ -139,13 +152,13 @@ class GuardActivity : Activity() {
         summaryText.text = buildString {
             appendLine("时音主应用：${if (mainInstalled) "已安装" else "未安装"}")
             appendLine("守护精确闹钟：${if (exactAllowed) "已允许" else "未允许（必选，否则无法准时唤醒）"}")
-            appendLine("通知权限：${if (notifyAllowed) "已允许" else "未允许（可选，主应用卸载时提醒卸载守护）"}")
+            appendLine("通知权限：${if (notifyAllowed) "已允许" else "未允许（完整激活需开启）"}")
             appendLine("已同步未来闹钟：$activeCount 个")
             appendLine()
-            append("说明：本组件无桌面图标，也不会常驻最近任务卡片。在 vivo 等国产系统上，请进入系统应用设置开启“自启动 / 关联启动”和“允许后台高耗电”，设置完成后点击“完成设置并隐藏卡片”。")
+            append("说明：本组件无桌面图标，也不会常驻最近任务卡片。在 vivo / OriginOS 上，请先打开自启动管理允许“时音闹钟守护”，再进入守护应用信息开启“关联启动”，并将后台耗电设为“允许后台高耗电”。")
         }
         exactButton.isEnabled = !exactAllowed
         exactButton.text = if (exactAllowed) "精确闹钟已允许" else "允许精确闹钟"
-        notificationButton.text = if (notifyAllowed) "通知已允许（可点此调整）" else "允许通知（用于主应用卸载提醒）"
+        notificationButton.text = if (notifyAllowed) "通知已允许（可点此调整）" else "允许守护通知"
     }
 }

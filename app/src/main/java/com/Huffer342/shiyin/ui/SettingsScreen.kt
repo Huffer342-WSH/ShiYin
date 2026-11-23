@@ -30,33 +30,42 @@ import com.Huffer342.shiyin.*
 @Composable
 fun SettingsScreen(
     padding: PaddingValues, listState: LazyListState, audioAllowed: Boolean, exactAllowed: Boolean,
-    notificationsAllowed: Boolean, guardStatus: CompanionGuardStatus, calendarYears: List<Int>, busy: Boolean, theme: ThemeSettings,
-    onAudio: () -> Unit, onExact: () -> Unit, onNotifications: () -> Unit, onAppSettings: () -> Unit,
+    notificationsAllowed: Boolean, fullscreenAllowed: Boolean, guardStatus: CompanionGuardStatus,
+    oemSetupConfirmed: Boolean, calendarYears: List<Int>, busy: Boolean, theme: ThemeSettings,
+    onAudio: () -> Unit, onExact: () -> Unit, onNotifications: () -> Unit, onEnvironment: () -> Unit,
     onGuard: () -> Unit, onUpdateCalendar: () -> Unit, onTheme: () -> Unit, onHelp: () -> Unit
 ) {
+    val environmentCompleted = listOf(audioAllowed, notificationsAllowed, exactAllowed, fullscreenAllowed, guardStatus.ready, oemSetupConfirmed).count { it }
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize().consumeWindowInsets(padding).testTag("settings_list"),
         contentPadding = padding) {
         item {
             SettingRow(Icons.Rounded.Palette, "主题", "${theme.palette.label} · ${theme.mode.label}", onTheme)
+            SettingRow(
+                Icons.Rounded.SettingsSuggest,
+                "运行环境",
+                if (environmentCompleted == 6) "全部就绪" else "已完成 $environmentCompleted/6 · 点击继续配置",
+                onEnvironment
+            )
             HorizontalDivider()
             SectionLabel("权限")
             SettingRow(Icons.Rounded.LibraryMusic, "系统音乐库", if (audioAllowed) "已允许" else "未授权", onAudio)
             SettingRow(Icons.Rounded.Alarm, "闹钟和提醒", if (exactAllowed) "已允许" else "未授权", onExact)
             SettingRow(Icons.Rounded.NotificationsNone, "通知", if (notificationsAllowed) "已开启" else "未开启", onNotifications)
             val context = LocalContext.current
-            SettingRow(Icons.Rounded.Fullscreen, "全屏闹钟", "设置锁屏响铃显示权限", {
+            SettingRow(Icons.Rounded.Fullscreen, "全屏闹钟", if (fullscreenAllowed) "已允许" else "未允许", {
                 val action = if (Build.VERSION.SDK_INT >= 34) android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT
                     else android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                 runCatching { context.startActivity(android.content.Intent(action, android.net.Uri.parse("package:${context.packageName}"))) }
             })
             val guardSummary = when {
-                !guardStatus.installed -> "未安装（可选）· 防止最近任务划掉失效"
+                !guardStatus.installed -> "未安装 · 划掉任务卡片后闹钟可能失效"
                 !guardStatus.signatureMatches -> "签名不匹配 · 请从本应用重新安装"
                 !guardStatus.canScheduleExactAlarms -> "已安装 · 请允许守护精确闹钟"
+                !guardStatus.notificationsEnabled -> "已安装 · 请允许守护通知"
                 else -> "已安装 · 已就绪（同步 ${guardStatus.activeCount} 个闹钟）"
             }
             SettingRow(Icons.Rounded.VerifiedUser, "闹钟守护包", guardSummary, onGuard)
-            SettingRow(Icons.Rounded.BatterySaver, "权限与后台", "授权、自启动与后台锁定", onAppSettings)
+            SettingRow(Icons.Rounded.BatterySaver, "厂商后台设置", if (oemSetupConfirmed) "已人工确认" else "待确认自启动、关联启动和后台耗电", onEnvironment)
             HorizontalDivider()
             SectionLabel("工作日日历")
             SettingRow(Icons.Rounded.CalendarMonth, "中国大陆", if (calendarYears.isEmpty()) "未下载" else calendarYears.joinToString("、") + " 年", onUpdateCalendar)

@@ -128,6 +128,8 @@ fun GuardSetupDialog(
                             if (status.signatureMatches) {
                                 append("\n守护精确闹钟：")
                                 append(if (status.canScheduleExactAlarms) "已允许" else "未允许（需进入守护设置开启）")
+                                append("\n守护通知：")
+                                append(if (status.notificationsEnabled) "已开启" else "未开启（需进入守护设置开启）")
                                 append("\n已同步未来闹钟：${status.activeCount} 个")
                             }
                         }
@@ -153,7 +155,7 @@ fun GuardSetupDialog(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (status.canScheduleExactAlarms) "打开守护设置与自启动引导" else "前往守护设置（必开精确闹钟）")
+                            Text(if (status.ready) "打开守护设置与自启动引导" else "继续守护授权（精确闹钟与通知）")
                         }
                         OutlinedButton(
                             onClick = {
@@ -162,7 +164,7 @@ fun GuardSetupDialog(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("打开守护系统应用信息")
+                            Text("配置守护自启动 / 关联启动 / 后台耗电")
                         }
                         Text(
                             "vivo / OriginOS 必看：除允许守护精确闹钟外，还须在「守护系统应用信息」中开启「自启动」「关联启动」并将电池后台耗电设为「允许后台高耗电」，否则系统省电会延迟或拦截唤醒。",

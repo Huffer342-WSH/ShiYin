@@ -20,7 +20,7 @@ data class CompanionGuardStatus(
     val activeCount: Int = 0,
     val hasBundledApk: Boolean = false
 ) {
-    val ready: Boolean get() = installed && signatureMatches && canScheduleExactAlarms
+    val ready: Boolean get() = installed && signatureMatches && canScheduleExactAlarms && notificationsEnabled
 }
 
 internal fun encodeGuardAlarmSyncJson(schedules: List<Schedule>, now: Long): String {

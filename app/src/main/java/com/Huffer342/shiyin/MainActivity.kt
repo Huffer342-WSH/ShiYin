@@ -1,8 +1,8 @@
 package com.Huffer342.shiyin
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
@@ -37,7 +37,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -117,23 +117,8 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
         revision++
         if (!granted) permissionDialog = "notificationSettings"
     }
-    val initialPermissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        revision++
-        if (MusicLibrary.hasPermission(activity)) model.scan()
-        help = !helpPrefs.getBoolean("manual_seen_v1", false)
-    }
     LaunchedEffect(Unit) {
-        if (!helpPrefs.getBoolean("runtime_requested_v1", false)) {
-            val missing = buildList {
-                if (!MusicLibrary.hasPermission(activity)) add(MusicLibrary.permission)
-                if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(activity,
-                        Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-                    add(Manifest.permission.POST_NOTIFICATIONS)
-            }
-            helpPrefs.edit().putBoolean("runtime_requested_v1", true).apply()
-            if (missing.isNotEmpty()) initialPermissions.launch(missing.toTypedArray())
-            else help = !helpPrefs.getBoolean("manual_seen_v1", false)
-        }
+        if (!helpPrefs.getBoolean("environment_setup_seen_v1", false)) setup = true
     }
     val requestAudio = {
         when {
@@ -217,10 +202,12 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
     val backgroundAction by rememberUpdatedState({ runInBackground() })
     val audioAllowed = remember(revision) { MusicLibrary.hasPermission(activity) }
     val exactAllowed = remember(revision) { ScheduleScheduler.canSchedule(activity) }
-    val notificationsAllowed = remember(revision) {
-        Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    val notificationsAllowed = remember(revision) { NotificationManagerCompat.from(activity).areNotificationsEnabled() }
+    val fullscreenAllowed = remember(revision) {
+        Build.VERSION.SDK_INT < 34 || activity.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
     }
     val guardStatus = remember(revision) { CompanionGuard.queryStatus(activity) }
+    val oemSetupConfirmed = remember(revision) { helpPrefs.getBoolean("oem_setup_confirmed_v1", false) }
 
     LaunchedEffect(primary, tab, help, setup, guardDialog, guardStatus.installed, model.loaded) {
         if (model.loaded && primary && tab == 3 && !help && !setup && !guardDialog &&
@@ -321,7 +308,7 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
                         }) { padding ->
                         when (page) {
                             "settings" -> SettingsScreen(padding, settingsList, audioAllowed, exactAllowed, notificationsAllowed,
-                                guardStatus, model.calendarYears, model.busy, model.theme,
+                                fullscreenAllowed, guardStatus, oemSetupConfirmed, model.calendarYears, model.busy, model.theme,
                                 { if (audioAllowed) settings() else audioPermission.launch(MusicLibrary.permission) },
                                 requestExact, {
                                     if (Build.VERSION.SDK_INT >= 33 && !notificationsAllowed) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -408,13 +395,11 @@ private fun PlayerApp(activity: ComponentActivity, model: PlayerViewModel) {
         if (editorId != null || showPlayer) SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(12.dp))
     }
     if (setup) StartupSetupDialog(activity, { model.scan(); revision++ }, {
-        setup = false
         guardFirstAlarmPrompt = false
         guardDialog = true
     }) {
-        helpPrefs.edit().putBoolean("setup_seen_v1", true).apply()
+        helpPrefs.edit().putBoolean("environment_setup_seen_v1", true).apply()
         setup = false
-        help = !helpPrefs.getBoolean("manual_seen_v1", false)
     }
     if (guardDialog) GuardSetupDialog(activity, guardFirstAlarmPrompt, {
         revision++
