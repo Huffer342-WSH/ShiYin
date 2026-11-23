@@ -3,6 +3,10 @@ package com.Huffer342.shiyin
 import com.Huffer342.shiyin.ui.audioBitrateText
 import com.Huffer342.shiyin.ui.audioFormatText
 import com.Huffer342.shiyin.ui.audioSizeText
+import com.Huffer342.shiyin.ui.SongGroup
+import com.Huffer342.shiyin.ui.SongSort
+import com.Huffer342.shiyin.ui.groupSongs
+import com.Huffer342.shiyin.ui.sortSongs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -43,6 +47,36 @@ class MusicLibrarySettingsTest {
     fun directoryOverridesSurviveStorageRoundTrip() {
         val values = mapOf("external_primary|recordings/" to true, "external_primary|ringtones/" to false)
         assertEquals(values, LibraryCodec.readMediaDirectoryOverrides(LibraryCodec.mediaDirectoryOverrides(values)))
+    }
+
+    @Test
+    fun songsSortByEverySupportedFieldAndDirection() {
+        val zulu = Song("content://media/external/audio/media/1", "Zulu", "Beta", 3_000, "b.mp3", "Music/Z/b.mp3")
+        val alpha = Song("content://media/external/audio/media/2", "Alpha", "Gamma", 1_000, "c.mp3", "Music/A/c.mp3")
+        val middle = Song("content://media/external/audio/media/3", "Middle", "Alpha", 2_000, "a.mp3", "Download/a.mp3")
+        val songs = listOf(zulu, alpha, middle)
+
+        assertEquals(listOf(alpha, middle, zulu), sortSongs(songs, SongSort.TITLE, true))
+        assertEquals(listOf(middle, zulu, alpha), sortSongs(songs, SongSort.FILE_NAME, true))
+        assertEquals(listOf(middle, alpha, zulu), sortSongs(songs, SongSort.FILE_PATH, true))
+        assertEquals(listOf(alpha, middle, zulu), sortSongs(songs, SongSort.DURATION, true))
+        assertEquals(listOf(middle, zulu, alpha), sortSongs(songs, SongSort.ARTIST, true))
+        assertEquals(listOf(zulu, middle, alpha), sortSongs(songs, SongSort.TITLE, false))
+    }
+
+    @Test
+    fun songsGroupLikeAFileManager() {
+        val zulu = Song("content://media/external/audio/media/1", "Zulu", "Beta", 16 * 60_000L, "z.mp3", "Music/Z/z.mp3")
+        val alpha = Song("content://media/external/audio/media/2", "Alpha", "Gamma", 30_000, "a.flac", "Music/A/a.flac")
+        val middle = Song("content://media/external/audio/media/3", "Middle", "Alpha", 2 * 60_000L, "m.mp3", "Download/m.mp3")
+        val songs = listOf(zulu, alpha, middle)
+
+        assertEquals(listOf("A", "M", "Z"), groupSongs(songs, SongGroup.TITLE_INITIAL).map { it.first })
+        assertEquals(listOf("Download", "Music/A", "Music/Z"), groupSongs(songs, SongGroup.FOLDER).map { it.first })
+        assertEquals(listOf("FLAC", "MP3"), groupSongs(songs, SongGroup.FILE_TYPE).map { it.first })
+        assertEquals(listOf("1 分钟以内", "1–5 分钟", "15 分钟以上"),
+            groupSongs(songs, SongGroup.DURATION).map { it.first })
+        assertEquals(listOf("Alpha", "Beta", "Gamma"), groupSongs(songs, SongGroup.ARTIST).map { it.first })
     }
 
     @Test

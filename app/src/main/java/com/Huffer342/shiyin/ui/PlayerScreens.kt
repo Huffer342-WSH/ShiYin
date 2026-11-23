@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -81,6 +82,58 @@ fun EmptyState(icon: ImageVector, title: String, detail: String, action: String,
     }
 }
 
+enum class SongSort(val label: String) {
+    TITLE("标题"),
+    FILE_NAME("文件名"),
+    FILE_PATH("文件路径"),
+    DURATION("时长"),
+    ARTIST("创作者")
+}
+
+enum class SongGroup(val label: String) {
+    NONE("不分类"),
+    TITLE_INITIAL("标题首字母"),
+    FOLDER("文件夹"),
+    FILE_TYPE("文件类型"),
+    DURATION("时长区间"),
+    ARTIST("创作者")
+}
+
+fun sortSongs(songs: List<Song>, sort: SongSort, ascending: Boolean): List<Song> {
+    fun normalized(value: String) = value.lowercase(Locale.ROOT)
+    val comparator = when (sort) {
+        SongSort.TITLE -> compareBy<Song> { normalized(it.title) }
+        SongSort.FILE_NAME -> compareBy { normalized(it.fileName.ifBlank { it.title }) }
+        SongSort.FILE_PATH -> compareBy { normalized(it.location.ifBlank { it.fileName.ifBlank { it.title } }) }
+        SongSort.DURATION -> compareBy { it.duration }
+        SongSort.ARTIST -> compareBy { normalized(it.artist.ifBlank { "未知艺术家" }) }
+    }.thenBy { normalized(it.title) }.thenBy { it.uri }
+    return songs.sortedWith(if (ascending) comparator else comparator.reversed())
+}
+
+fun groupSongs(songs: List<Song>, group: SongGroup): List<Pair<String, List<Song>>> {
+    if (group == SongGroup.NONE) return listOf("" to songs)
+    fun label(song: Song): String = when (group) {
+        SongGroup.NONE -> ""
+        SongGroup.TITLE_INITIAL -> song.title.trim().firstOrNull()?.uppercase() ?: "#"
+        SongGroup.FOLDER -> song.location.substringBeforeLast('/', "").ifBlank { "未知文件夹" }
+        SongGroup.FILE_TYPE -> song.fileName.substringAfterLast('.', "").uppercase(Locale.ROOT).ifBlank { "未知格式" }
+        SongGroup.DURATION -> when {
+            song.duration < 60_000 -> "1 分钟以内"
+            song.duration < 5 * 60_000 -> "1–5 分钟"
+            song.duration < 15 * 60_000 -> "5–15 分钟"
+            else -> "15 分钟以上"
+        }
+        SongGroup.ARTIST -> song.artist.ifBlank { "未知创作者" }
+    }
+    val order = mapOf("1 分钟以内" to 0, "1–5 分钟" to 1, "5–15 分钟" to 2, "15 分钟以上" to 3)
+    return songs.groupBy(::label).toList().sortedWith(
+        compareBy<Pair<String, List<Song>>> { if (group == SongGroup.DURATION) order[it.first] ?: Int.MAX_VALUE else 0 }
+            .thenBy { it.first.lowercase(Locale.ROOT) }
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryScreen(
     songs: List<Song>, playback: PlaybackUi, permission: Boolean, connected: Boolean,
@@ -90,7 +143,15 @@ fun LibraryScreen(
     onPlaylist: (Song) -> Unit, onQueue: (Song, Boolean) -> Unit,
     searchVisible: Boolean = true, sourceError: String = ""
 ) {
-    val filtered = remember(songs, query) { songs.filter { it.title.contains(query, true) || it.artist.contains(query, true) } }
+    var sort by rememberSaveable { mutableStateOf(SongSort.TITLE) }
+    var ascending by rememberSaveable { mutableStateOf(true) }
+    var group by rememberSaveable { mutableStateOf(SongGroup.NONE) }
+    var sortMenu by remember { mutableStateOf(false) }
+    var groupMenu by remember { mutableStateOf(false) }
+    val filtered = remember(songs, query, sort, ascending) {
+        sortSongs(songs.filter { it.title.contains(query, true) || it.artist.contains(query, true) }, sort, ascending)
+    }
+    val sections = remember(filtered, group) { groupSongs(filtered, group) }
     var detailsSong by remember { mutableStateOf<Song?>(null) }
     val listModifier = Modifier.fillMaxSize().consumeWindowInsets(padding).testTag("library_list")
         .then(if (detailsSong == null) Modifier else Modifier.clearAndSetSemantics {})
@@ -104,8 +165,60 @@ fun LibraryScreen(
         if (sourceError.isNotEmpty()) item { Text(sourceError, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
         if (filtered.isNotEmpty()) item {
             Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${filtered.size} 首", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    buildString {
+                        append("${filtered.size} 首 · ${sort.label}${if (ascending) "升序" else "降序"}")
+                        if (group != SongGroup.NONE) append(" · ${group.label}")
+                    },
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Box {
+                    ActionIcon(Icons.AutoMirrored.Rounded.Sort, "排序", { sortMenu = true })
+                    DropdownMenu(sortMenu, { sortMenu = false }) {
+                        SongSort.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.label) },
+                                leadingIcon = {
+                                    if (sort == option) Icon(Icons.Rounded.Check, null)
+                                },
+                                onClick = {
+                                    sort = option
+                                    sortMenu = false
+                                }
+                            )
+                        }
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(if (ascending) "切换为降序" else "切换为升序") },
+                            leadingIcon = {
+                                Icon(if (ascending) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward, null)
+                            },
+                            onClick = {
+                                ascending = !ascending
+                                sortMenu = false
+                            }
+                        )
+                    }
+                }
+                Box {
+                    ActionIcon(Icons.Rounded.Category, "分类", { groupMenu = true })
+                    DropdownMenu(groupMenu, { groupMenu = false }) {
+                        SongGroup.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.label) },
+                                leadingIcon = {
+                                    if (group == option) Icon(Icons.Rounded.Check, null)
+                                },
+                                onClick = {
+                                    group = option
+                                    groupMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
                 ActionIcon(Icons.Rounded.PlayArrow, "播放全部", { onPlay(filtered.first(), filtered) }, connected)
             }
         }
@@ -114,31 +227,45 @@ fun LibraryScreen(
                 if (query.isNotEmpty()) "清空搜索" else if (permission) "重新扫描" else "选择目录",
                 { if (query.isNotEmpty()) onQuery("") else if (!busy) onScan() })
         }
-        items(filtered, key = { it.uri }) { song ->
-            var menu by remember { mutableStateOf(false) }
-            ListItem(
-                headlineContent = { Text(song.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                supportingContent = { Text("${song.artist} · ${durationText(song.duration)}",
-                    maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingContent = { RecordArtwork(song.title, Modifier.size(48.dp)) },
-                trailingContent = {
-                    Box {
-                        ActionIcon(Icons.Rounded.MoreVert, "${song.title}，更多操作", { menu = true })
-                        DropdownMenu(menu, { menu = false }) {
-                            DropdownMenuItem(text = { Text("下一首播放") }, enabled = !playback.alarm, onClick = { menu = false; onQueue(song, true) })
-                            DropdownMenuItem(text = { Text("加入队列") }, enabled = !playback.alarm, onClick = { menu = false; onQueue(song, false) })
-                            DropdownMenuItem(text = { Text("添加到播放列表") }, onClick = { menu = false; onPlaylist(song) })
-                            DropdownMenuItem(text = { Text("创建闹钟") }, onClick = { menu = false; onSchedule(song) })
-                            DropdownMenuItem(text = { Text("详细信息") }, onClick = {
-                                menu = false
-                                detailsSong = song
-                            })
-                        }
+        sections.forEach { (section, sectionSongs) ->
+            if (group != SongGroup.NONE) stickyHeader(key = "group_$section") {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(section, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                        Text("${sectionSongs.size} 首", style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                },
-                colors = ListItemDefaults.colors(containerColor = if (playback.uri == song.uri)
-                    MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface),
-                modifier = Modifier.clickable(enabled = connected) { onPlay(song, filtered) })
+                }
+            }
+            items(sectionSongs, key = { it.uri }) { song ->
+                var menu by remember { mutableStateOf(false) }
+                ListItem(
+                    headlineContent = { Text(song.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    supportingContent = { Text("${song.artist} · ${durationText(song.duration)}",
+                        maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    leadingContent = { RecordArtwork(song.title, Modifier.size(48.dp)) },
+                    trailingContent = {
+                        Box {
+                            ActionIcon(Icons.Rounded.MoreVert, "${song.title}，更多操作", { menu = true })
+                            DropdownMenu(menu, { menu = false }) {
+                                DropdownMenuItem(text = { Text("下一首播放") }, enabled = !playback.alarm, onClick = { menu = false; onQueue(song, true) })
+                                DropdownMenuItem(text = { Text("加入队列") }, enabled = !playback.alarm, onClick = { menu = false; onQueue(song, false) })
+                                DropdownMenuItem(text = { Text("添加到播放列表") }, onClick = { menu = false; onPlaylist(song) })
+                                DropdownMenuItem(text = { Text("创建闹钟") }, onClick = { menu = false; onSchedule(song) })
+                                DropdownMenuItem(text = { Text("详细信息") }, onClick = {
+                                    menu = false
+                                    detailsSong = song
+                                })
+                            }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = if (playback.uri == song.uri)
+                        MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.clickable(enabled = connected) { onPlay(song, filtered) })
+            }
         }
     }
     detailsSong?.let { song -> AudioDetailsDialog(song) { detailsSong = null } }

@@ -18,7 +18,14 @@ import java.io.File
 import java.util.ArrayDeque
 import java.util.Locale
 
-data class Song(val uri: String, val title: String, val artist: String, val duration: Long) {
+data class Song(
+    val uri: String,
+    val title: String,
+    val artist: String,
+    val duration: Long,
+    val fileName: String = "",
+    val location: String = ""
+) {
     fun mediaItem(): MediaItem = MediaItem.Builder().setMediaId(uri).setUri(uri)
         .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setArtist(artist).build()).build()
 }
@@ -121,8 +128,8 @@ object MusicLibrary {
             }
             else @Suppress("DEPRECATION") projection.add(MediaStore.MediaColumns.DATA)
         }
-        var fileName = ""
-        var location = ""
+        var fileName = song.fileName
+        var location = song.location
         var mimeType = ""
         var volumeName = ""
         var size = -1L
@@ -268,7 +275,9 @@ object MusicLibrary {
                     it.getString(1)?.takeIf(String::isNotBlank)
                         ?: displayName.substringBeforeLast('.').ifBlank { "未命名音频" },
                     it.getString(2)?.takeUnless { artist -> artist == "<unknown>" } ?: "未知艺术家",
-                    it.getLong(3)
+                    it.getLong(3),
+                    displayName,
+                    path + displayName
                 )
                 songKeys[uri] = storageKey
             }
@@ -376,7 +385,9 @@ object MusicLibrary {
                                         retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                                             ?.takeIf(String::isNotBlank) ?: "未知艺术家",
                                         retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                                            ?.toLongOrNull()?.coerceAtLeast(0) ?: 0
+                                            ?.toLongOrNull()?.coerceAtLeast(0) ?: 0,
+                                        name,
+                                        id.substringAfter(':', missingDelimiterValue = name)
                                     )
                                 } finally {
                                     retriever.release()

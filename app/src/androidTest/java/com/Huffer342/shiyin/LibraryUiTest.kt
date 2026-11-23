@@ -59,6 +59,37 @@ class LibraryUiTest {
         compose.onNodeWithText("打开文件管理器？").assertExists()
     }
 
+    @Test fun songSortMenuChangesCriterionAndDirection() {
+        val zulu = Song("content://media/external/audio/media/1", "Zulu", "Artist", 1000, "z.mp3", "Music/Z/z.mp3")
+        val alpha = Song("content://media/external/audio/media/2", "Alpha", "Artist", 1000, "a.mp3", "Music/A/a.mp3")
+        compose.setContent {
+            ShiYinTheme {
+                LibraryScreen(
+                    listOf(zulu, alpha), PlaybackUi(), true, true, false, PaddingValues(),
+                    rememberLazyListState(), "", {}, {}, { _, _ -> }, {}, {}, { _, _ -> }
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("排序").performClick()
+        compose.onNodeWithText("文件路径").performClick()
+        compose.onNodeWithText("2 首 · 文件路径升序").assertExists()
+        assertTrue(compose.onNodeWithText("Alpha").fetchSemanticsNode().boundsInRoot.top <
+            compose.onNodeWithText("Zulu").fetchSemanticsNode().boundsInRoot.top)
+
+        compose.onNodeWithContentDescription("排序").performClick()
+        compose.onNodeWithText("切换为降序").performClick()
+        compose.onNodeWithText("2 首 · 文件路径降序").assertExists()
+        assertTrue(compose.onNodeWithText("Zulu").fetchSemanticsNode().boundsInRoot.top <
+            compose.onNodeWithText("Alpha").fetchSemanticsNode().boundsInRoot.top)
+
+        compose.onNodeWithContentDescription("分类").performClick()
+        compose.onNodeWithText("文件夹").performClick()
+        compose.onNodeWithText("2 首 · 文件路径降序 · 文件夹").assertExists()
+        compose.onNodeWithText("Music/A").assertExists()
+        compose.onNodeWithText("Music/Z").assertExists()
+    }
+
     @Test fun customThemeRejectsBadHexAndAppliesValidColor() {
         var result = ThemeSettings()
         compose.setContent {
